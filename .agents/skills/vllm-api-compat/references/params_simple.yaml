@@ -1,0 +1,685 @@
+meta:
+  description: Bool-only test cases (simplified from params_full.yaml)
+  rules:
+    has_no_variant: --flag (true) + --no-flag (true)
+    no_no_variant: --flag true + --flag false
+    subfields: 'JSON key: true + false'
+GlobalOptions:
+  baseline:
+  - /home/weights/Qwen3.5-0.8B/
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen3-next
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.8
+  - --no-disable-hybrid-kv-cache-manager
+  params:
+  - name: --aggregate-engine-logging
+    test_value: true
+  - name: --aggregate-engine-logging
+    test_value: false
+  - name: --disable-log-stats
+    test_value: true
+  - name: --disable-log-stats
+    test_value: false
+  - name: --enable-log-requests
+    test_value: true
+  - name: --no-enable-log-requests
+    test_value: true
+  - name: --fail-on-environ-validation
+    test_value: true
+  - name: --no-fail-on-environ-validation
+    test_value: true
+  - name: --grpc
+    test_value: true
+  - name: --grpc
+    test_value: false
+  - name: --headless
+    test_value: true
+  - name: --headless
+    test_value: false
+Frontend:
+  baseline:
+  - /home/weights/Qwen3.5-0.8B/
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen3-next
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.9
+  - --no-disable-hybrid-kv-cache-manager
+  params:
+  - name: --allow-credentials
+    test_value: true
+  - name: --no-allow-credentials
+    test_value: true
+  - name: --disable-fastapi-docs
+    test_value: true
+  - name: --no-disable-fastapi-docs
+    test_value: true
+  - name: --disable-uvicorn-access-log
+    test_value: true
+  - name: --no-disable-uvicorn-access-log
+    test_value: true
+  - name: --enable-auto-tool-choice
+    test_value: true
+  - name: --no-enable-auto-tool-choice
+    test_value: true
+  - name: --enable-flash-late-interaction
+    test_value: true
+  - name: --no-enable-flash-late-interaction
+    test_value: true
+  - name: --enable-force-include-usage
+    test_value: true
+  - name: --no-enable-force-include-usage
+    test_value: true
+  - name: --enable-log-deltas
+    test_value: true
+  - name: --no-enable-log-deltas
+    test_value: true
+  - name: --enable-log-outputs
+    test_value: true
+  - name: --no-enable-log-outputs
+    test_value: true
+  - name: --enable-offline-docs
+    test_value: true
+  - name: --no-enable-offline-docs
+    test_value: true
+  - name: --enable-prompt-tokens-details
+    test_value: true
+  - name: --no-enable-prompt-tokens-details
+    test_value: true
+  - name: --enable-request-id-headers
+    test_value: true
+  - name: --no-enable-request-id-headers
+    test_value: true
+  - name: --enable-server-load-tracking
+    test_value: true
+  - name: --no-enable-server-load-tracking
+    test_value: true
+  - name: --enable-ssl-refresh
+    test_value: true
+  - name: --no-enable-ssl-refresh
+    test_value: true
+  - name: --enable-tokenizer-info-endpoint
+    test_value: true
+  - name: --no-enable-tokenizer-info-endpoint
+    test_value: true
+  - name: --exclude-tools-when-tool-choice-none
+    test_value: true
+  - name: --no-exclude-tools-when-tool-choice-none
+    test_value: true
+  - name: --log-error-stack
+    test_value: true
+  - name: --no-log-error-stack
+    test_value: true
+  - name: --return-tokens-as-token-ids
+    test_value: true
+  - name: --no-return-tokens-as-token-ids
+    test_value: true
+  - name: --tokens-only
+    test_value: true
+  - name: --no-tokens-only
+    test_value: true
+  - name: --trust-request-chat-template
+    test_value: true
+  - name: --no-trust-request-chat-template
+    test_value: true
+ModelConfig:
+  baseline:
+  - /home/weights/Qwen3.5-0.8B/
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen3-next
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.9
+  - --no-disable-hybrid-kv-cache-manager
+  params:
+  - name: --allow-deprecated-quantization
+    test_value: true
+  - name: --no-allow-deprecated-quantization
+    test_value: true
+  - name: --disable-cascade-attn
+    test_value: true
+  - name: --no-disable-cascade-attn
+    test_value: true
+  - name: --disable-sliding-window
+    test_value: true
+  - name: --no-disable-sliding-window
+    test_value: true
+  - name: --enable-cumem-allocator
+    test_value: true
+  - name: --no-enable-cumem-allocator
+    test_value: true
+  - name: --enable-prompt-embeds
+    test_value: true
+  - name: --no-enable-prompt-embeds
+    test_value: true
+  - name: --enable-return-routed-experts
+    test_value: true
+  - name: --no-enable-return-routed-experts
+    test_value: true
+  - name: --enable-sleep-mode
+    test_value: true
+  - name: --no-enable-sleep-mode
+    test_value: true
+  - name: --pooler-config
+    subfields:
+    - name: use_activation
+      test_value: true
+    - name: use_activation
+      test_value: false
+    - name: enable_chunked_processing
+      test_value: true
+    - name: enable_chunked_processing
+      test_value: false
+  - name: --skip-tokenizer-init
+    test_value: true
+  - name: --no-skip-tokenizer-init
+    test_value: true
+  - name: --use-fp64-gumbel
+    test_value: true
+  - name: --no-use-fp64-gumbel
+    test_value: true
+LoadConfig:
+  baseline:
+  - /home/weights/Qwen3.5-0.8B/
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen3-next
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.9
+  - --no-disable-hybrid-kv-cache-manager
+  params:
+  - name: --use-tqdm-on-load
+    test_value: true
+  - name: --no-use-tqdm-on-load
+    test_value: true
+MambaConfig:
+  baseline:
+  - /home/weights/Qwen3.5-0.8B/
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen3-next
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.9
+  - --no-disable-hybrid-kv-cache-manager
+  params:
+  - name: --enable-mamba-cache-stochastic-rounding
+    test_value: true
+  - name: --no-enable-mamba-cache-stochastic-rounding
+    test_value: true
+ParallelConfig:
+  baseline:
+  - /home/weights/Qwen3.5-0.8B/
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen3-next
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.9
+  - --no-disable-hybrid-kv-cache-manager
+  params:
+  - name: --data-parallel-external-lb
+    test_value: true
+  - name: --no-data-parallel-external-lb
+    test_value: true
+  - name: --data-parallel-hybrid-lb
+    test_value: true
+  - name: --no-data-parallel-hybrid-lb
+    test_value: true
+  - name: --data-parallel-multi-port-external-lb
+    test_value: true
+  - name: --data-parallel-multi-port-external-lb
+    test_value: false
+  - name: --disable-custom-all-reduce
+    test_value: true
+  - name: --no-disable-custom-all-reduce
+    test_value: true
+  - name: --disable-nccl-for-dp-synchronization
+    test_value: true
+  - name: --no-disable-nccl-for-dp-synchronization
+    test_value: true
+  - name: --enable-dbo
+    test_value: true
+  - name: --no-enable-dbo
+    test_value: true
+  - name: --enable-elastic-ep
+    test_value: true
+  - name: --no-enable-elastic-ep
+    test_value: true
+  - name: --enable-ep-weight-filter
+    test_value: true
+  - name: --no-enable-ep-weight-filter
+    test_value: true
+  - name: --enable-eplb
+    test_value: true
+  - name: --no-enable-eplb
+    test_value: true
+  - name: --enable-expert-parallel
+    test_value: true
+  - name: --no-enable-expert-parallel
+    test_value: true
+  - name: --eplb-config
+    subfields:
+    - name: log_balancedness
+      test_value: true
+    - name: log_balancedness
+      test_value: false
+    - name: use_async
+      test_value: true
+    - name: use_async
+      test_value: false
+  - name: --numa-bind
+    test_value: true
+  - name: --no-numa-bind
+    test_value: true
+  - name: --ray-workers-use-nsight
+    test_value: true
+  - name: --no-ray-workers-use-nsight
+    test_value: true
+CacheConfig:
+  baseline:
+  - /home/weights/Qwen3.5-0.8B/
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen3-next
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.9
+  - --no-disable-hybrid-kv-cache-manager
+  params:
+  - name: --calculate-kv-scales
+    test_value: true
+  - name: --no-calculate-kv-scales
+    test_value: true
+  - name: --enable-prefix-caching
+    test_value: true
+  - name: --no-enable-prefix-caching
+    test_value: true
+  - name: --kv-sharing-fast-prefill
+    test_value: true
+  - name: --no-kv-sharing-fast-prefill
+    test_value: true
+MultiModalConfig:
+  baseline:
+  - /home/weights/Qwen3.5-0.8B/
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen3-next
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.9
+  - --no-disable-hybrid-kv-cache-manager
+  params:
+  - name: --enable-mm-embeds
+    test_value: true
+  - name: --no-enable-mm-embeds
+    test_value: true
+  - name: --interleave-mm-strings
+    test_value: true
+  - name: --no-interleave-mm-strings
+    test_value: true
+  - name: --language-model-only
+    test_value: true
+  - name: --no-language-model-only
+    test_value: true
+  - name: --mm-encoder-only
+    test_value: true
+  - name: --no-mm-encoder-only
+    test_value: true
+  - name: --skip-mm-profiling
+    test_value: true
+  - name: --no-skip-mm-profiling
+    test_value: true
+LoRAConfig:
+  baseline:
+  - /home/weights/Qwen3.5-0.8B/
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen3-next
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.9
+  - --no-disable-hybrid-kv-cache-manager
+  params:
+  - name: --enable-lora
+    test_value: true
+  - name: --no-enable-lora
+    test_value: true
+  - name: --enable-mixed-moe-lora-format
+    test_value: true
+  - name: --no-enable-mixed-moe-lora-format
+    test_value: true
+  - name: --enable-tower-connector-lora
+    test_value: true
+  - name: --no-enable-tower-connector-lora
+    test_value: true
+  - name: --fully-sharded-loras
+    test_value: true
+  - name: --no-fully-sharded-loras
+    test_value: true
+  - name: --specialize-active-lora
+    test_value: true
+  - name: --no-specialize-active-lora
+    test_value: true
+ObservabilityConfig:
+  baseline:
+  - /home/weights/Qwen3.5-0.8B/
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen3-next
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.9
+  - --no-disable-hybrid-kv-cache-manager
+  params:
+  - name: --cudagraph-metrics
+    test_value: true
+  - name: --no-cudagraph-metrics
+    test_value: true
+  - name: --enable-layerwise-nvtx-tracing
+    test_value: true
+  - name: --no-enable-layerwise-nvtx-tracing
+    test_value: true
+  - name: --enable-logging-iteration-details
+    test_value: true
+  - name: --no-enable-logging-iteration-details
+    test_value: true
+  - name: --enable-mfu-metrics
+    test_value: true
+  - name: --no-enable-mfu-metrics
+    test_value: true
+  - name: --kv-cache-metrics
+    test_value: true
+  - name: --no-kv-cache-metrics
+    test_value: true
+SchedulerConfig:
+  baseline:
+  - /home/weights/Qwen3.5-0.8B/
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen3-next
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.9
+  - --no-disable-hybrid-kv-cache-manager
+  params:
+  - name: --async-scheduling
+    test_value: true
+  - name: --no-async-scheduling
+    test_value: true
+  - name: --disable-chunked-mm-input
+    test_value: true
+  - name: --no-disable-chunked-mm-input
+    test_value: true
+  - name: --enable-chunked-prefill
+    test_value: true
+  - name: --no-enable-chunked-prefill
+    test_value: true
+  - name: --scheduler-reserve-full-isl
+    test_value: true
+  - name: --no-scheduler-reserve-full-isl
+    test_value: true
+KernelConfig:
+  baseline:
+  - /home/weights/Qwen3.5-0.8B/
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen3-next
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.9
+  - --no-disable-hybrid-kv-cache-manager
+  params:
+  - name: --enable-flashinfer-autotune
+    test_value: true
+  - name: --no-enable-flashinfer-autotune
+    test_value: true
+VllmConfig:
+  baseline:
+  - /home/weights/Qwen3.5-0.8B/
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen3-next
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.9
+  - --no-disable-hybrid-kv-cache-manager
+  params:
+  - name: --attention-config
+    subfields:
+    - name: use_prefill_decode_attention
+      test_value: true
+    - name: use_prefill_decode_attention
+      test_value: false
+    - name: use_trtllm_attention
+      test_value: true
+    - name: use_trtllm_attention
+      test_value: false
+    - name: disable_flashinfer_q_quantization
+      test_value: true
+    - name: disable_flashinfer_q_quantization
+      test_value: false
+    - name: use_prefill_query_quantization
+      test_value: true
+    - name: use_prefill_query_quantization
+      test_value: false
+    - name: use_fp4_indexer_cache
+      test_value: true
+    - name: use_fp4_indexer_cache
+      test_value: false
+    - name: use_non_causal
+      test_value: true
+    - name: use_non_causal
+      test_value: false
+  - name: --compilation-config
+    subfields:
+    - name: ir_enable_torch_wrap
+      test_value: true
+    - name: ir_enable_torch_wrap
+      test_value: false
+    - name: compile_mm_encoder
+      test_value: true
+    - name: compile_mm_encoder
+      test_value: false
+    - name: cudagraph_mm_encoder
+      test_value: true
+    - name: cudagraph_mm_encoder
+      test_value: false
+    - name: cudagraph_copy_inputs
+      test_value: true
+    - name: cudagraph_copy_inputs
+      test_value: false
+    - name: cudagraph_specialize_lora
+      test_value: true
+    - name: cudagraph_specialize_lora
+      test_value: false
+    - name: use_inductor_graph_partition
+      test_value: true
+    - name: use_inductor_graph_partition
+      test_value: false
+    - name: fast_moe_cold_start
+      test_value: true
+    - name: fast_moe_cold_start
+      test_value: false
+    - name: pass_config.fuse_norm_quant
+      test_value: true
+    - name: pass_config.fuse_norm_quant
+      test_value: false
+    - name: pass_config.fuse_act_quant
+      test_value: true
+    - name: pass_config.fuse_act_quant
+      test_value: false
+    - name: pass_config.fuse_attn_quant
+      test_value: true
+    - name: pass_config.fuse_attn_quant
+      test_value: false
+    - name: pass_config.eliminate_noops
+      test_value: true
+    - name: pass_config.eliminate_noops
+      test_value: false
+    - name: pass_config.enable_sp
+      test_value: true
+    - name: pass_config.enable_sp
+      test_value: false
+    - name: pass_config.fuse_gemm_comms
+      test_value: true
+    - name: pass_config.fuse_gemm_comms
+      test_value: false
+    - name: pass_config.fuse_allreduce_rms
+      test_value: true
+    - name: pass_config.fuse_allreduce_rms
+      test_value: false
+    - name: pass_config.fuse_minimax_qk_norm
+      test_value: true
+    - name: pass_config.fuse_minimax_qk_norm
+      test_value: false
+    - name: pass_config.enable_qk_norm_rope_fusion
+      test_value: true
+    - name: pass_config.enable_qk_norm_rope_fusion
+      test_value: false
+    - name: pass_config.fuse_rope_kvcache_cat_mla
+      test_value: true
+    - name: pass_config.fuse_rope_kvcache_cat_mla
+      test_value: false
+    - name: pass_config.fuse_act_padding
+      test_value: true
+    - name: pass_config.fuse_act_padding
+      test_value: false
+    - name: pass_config.fuse_mla_dual_rms_norm
+      test_value: true
+    - name: pass_config.fuse_mla_dual_rms_norm
+      test_value: false
+    - name: pass_config.fuse_rope_kvcache
+      test_value: true
+    - name: pass_config.fuse_rope_kvcache
+      test_value: false
+    - name: dynamic_shapes_config.evaluate_guards
+      test_value: true
+    - name: dynamic_shapes_config.evaluate_guards
+      test_value: false
+    - name: dynamic_shapes_config.assume_32_bit_indexing
+      test_value: true
+    - name: dynamic_shapes_config.assume_32_bit_indexing
+      test_value: false
+  - name: --kernel-config
+    subfields:
+    - name: enable_flashinfer_autotune
+      test_value: true
+    - name: enable_flashinfer_autotune
+      test_value: false
+  - name: --kv-events-config
+    subfields:
+    - name: enable_kv_cache_events
+      test_value: true
+    - name: enable_kv_cache_events
+      test_value: false
+  - name: --kv-transfer-config
+    subfields:
+    - name: enable_permute_local_kv
+      test_value: true
+    - name: enable_permute_local_kv
+      test_value: false
+  - name: --profiler-config
+    subfields:
+    - name: torch_profiler_with_stack
+      test_value: true
+    - name: torch_profiler_with_stack
+      test_value: false
+    - name: torch_profiler_with_flops
+      test_value: true
+    - name: torch_profiler_with_flops
+      test_value: false
+    - name: torch_profiler_use_gzip
+      test_value: true
+    - name: torch_profiler_use_gzip
+      test_value: false
+    - name: torch_profiler_dump_cuda_time_total
+      test_value: true
+    - name: torch_profiler_dump_cuda_time_total
+      test_value: false
+    - name: torch_profiler_record_shapes
+      test_value: true
+    - name: torch_profiler_record_shapes
+      test_value: false
+    - name: torch_profiler_with_memory
+      test_value: true
+    - name: torch_profiler_with_memory
+      test_value: false
+    - name: ignore_frontend
+      test_value: true
+    - name: ignore_frontend
+      test_value: false
+  - name: --speculative-config
+    subfields:
+    - name: disable_padded_drafter_batch
+      test_value: true
+    - name: disable_padded_drafter_batch
+      test_value: false
+    - name: use_local_argmax_reduction
+      test_value: true
+    - name: use_local_argmax_reduction
+      test_value: false
+    - name: parallel_drafting
+      test_value: true
+    - name: parallel_drafting
+      test_value: false
+  - name: --structured-outputs-config
+    subfields:
+    - name: disable_any_whitespace
+      test_value: true
+    - name: disable_any_whitespace
+      test_value: false
+    - name: disable_additional_properties
+      test_value: true
+    - name: disable_additional_properties
+      test_value: false
+    - name: enable_in_reasoning
+      test_value: true
+    - name: enable_in_reasoning
+      test_value: false
+

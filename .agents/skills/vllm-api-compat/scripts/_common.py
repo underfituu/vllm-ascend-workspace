@@ -19,10 +19,57 @@ STATE_DIR = ROOT / ".vaws-local" / "vllm-api-compat"
 PARAMS_YAML = STATE_DIR / "params.yaml"
 RESULTS_DIR = STATE_DIR / "results"
 DAILY_DIR = STATE_DIR / "daily"
+
+# Overridable log root; split into results/ (test outcome) and serve/ (vllm output)
+LOG_DIR = Path("./server-api-log")
 PROGRESS_SENTINEL = "__VAWS_VLLM_API_COMPAT_PROGRESS__="
 
 # Baseline args always added to vllm serve (keep test fast and low-memory)
 BASELINE_ARGS = ["--max-model-len", "512", "--enforce-eager"]
+
+SIMPLE_PARAMS_YAML = ROOT / ".agents" / "skills" / "vllm-api-compat" / "references" / "params_simple.yaml"
+
+
+def load_simple_params_yaml(path: Path | None = None) -> dict[str, Any]:
+    yaml_mod = _try_yaml_import()
+    if yaml_mod is None:
+        raise RuntimeError("PyYAML is required: pip install pyyaml")
+    p = path or SIMPLE_PARAMS_YAML
+    with open(p, "r", encoding="utf-8") as f:
+        return yaml_mod.safe_load(f)
+
+
+def build_extra_args_simple(param_entry: dict[str, Any]) -> list[str]:
+    """Build CLI args from a params_simple.yaml entry {name, test_value}.
+
+    - bool_flag with test_value=True  → ["--flag"]
+    - bool_flag with test_value=False → [] (omit; absence is the false state)
+    - name starts with '--no-'        → ["--no-flag"] (always test_value=True)
+    - json_config (has subfields)     → build --flag '{"sub": val, ...}'
+    """
+    import json as _json
+    name = param_entry.get("name", "")
+    test_value = param_entry.get("test_value")
+    subfields = param_entry.get("subfields")
+
+    if subfields is not None:
+        # json_config: compose a JSON object from all subfields
+        obj = {}
+        for sf in subfields:
+            sfname = sf["name"]
+            sfval = sf["test_value"]
+            # handle dotted keys: "pass_config.fuse_norm_quant" → nested dict
+            parts = sfname.split(".")
+            d = obj
+            for part in parts[:-1]:
+                d = d.setdefault(part, {})
+            d[parts[-1]] = sfval
+        return [name, _json.dumps(obj)]
+
+    if isinstance(test_value, bool):
+        return [name] if test_value else []
+
+    return [name, str(test_value)]
 
 
 # ---------------------------------------------------------------------------
@@ -106,18 +153,21 @@ def start_vllm_serve(
     extra_args: list[str],
     port: int,
     log_prefix: str = "serve",
+    use_baseline_args: bool = True,
 ) -> subprocess.Popen:
     """Launch a local vllm serve process.
 
     Returns the Popen handle. stdout/stderr are written to log files under
     RESULTS_DIR so the caller can inspect them on failure.
     """
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    serve_dir = LOG_DIR / "serve"
+    serve_dir.mkdir(parents=True, exist_ok=True)
     ts = now_utc().replace(":", "-")
-    log_stdout = RESULTS_DIR / f"{log_prefix}_{ts}_stdout.log"
-    log_stderr = RESULTS_DIR / f"{log_prefix}_{ts}_stderr.log"
+    log_stdout = serve_dir / f"{log_prefix}_{ts}_stdout.log"
+    log_stderr = serve_dir / f"{log_prefix}_{ts}_stderr.log"
 
-    cmd = ["vllm", "serve", model, "--port", str(port)] + BASELINE_ARGS + extra_args
+    baseline = BASELINE_ARGS if use_baseline_args else []
+    cmd = ["vllm", "serve", model, "--port", str(port)] + baseline + extra_args
 
     emit_progress("serve_start", f"starting: {' '.join(cmd)}")
 
@@ -140,12 +190,12 @@ def start_vllm_serve(
     return proc
 
 
-def wait_for_ready(port: int, timeout: int = 120) -> bool:
-    """Poll http://localhost:<port>/health every 2s until 200 or timeout."""
+def wait_for_ready(port: int, timeout: int = 120, host: str = "localhost") -> bool:
+    """Poll http://<host>:<port>/health every 2s until 200 or timeout."""
     from urllib.request import urlopen
     from urllib.error import URLError
 
-    url = f"http://localhost:{port}/health"
+    url = f"http://{host}:{port}/health"
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
@@ -158,15 +208,12 @@ def wait_for_ready(port: int, timeout: int = 120) -> bool:
     return False
 
 
-def send_completion_request(model: str, port: int) -> tuple[bool, str]:
-    """POST a minimal completion request and check for valid response.
-
-    Returns (True, "") on success, (False, error_message) on failure.
-    """
+def send_completion_request(model: str, port: int, host: str = "localhost") -> tuple[bool, str]:
+    """POST a minimal completion request and check for valid response."""
     from urllib.request import Request, urlopen
     from urllib.error import URLError, HTTPError
 
-    url = f"http://localhost:{port}/v1/completions"
+    url = f"http://{host}:{port}/v1/completions"
     payload = json.dumps({
         "model": model,
         "prompt": "Hello",
@@ -217,6 +264,41 @@ def stop_vllm_serve(proc: subprocess.Popen) -> None:
         proc.wait(timeout=5)
 
     _close_log_handles(proc)
+    _wait_descendants_gone(proc.pid)
+
+
+def _wait_npu_memory_free(timeout: int = 60) -> None:
+    """Wait until all ASCEND_RT_VISIBLE_DEVICES show no running processes."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            out = subprocess.check_output(
+                ["npu-smi", "info"], stderr=subprocess.DEVNULL, text=True
+            )
+            if out.count("No running processes") >= 4:
+                return
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return  # npu-smi not available, skip
+        time.sleep(3)
+
+
+def _wait_descendants_gone(pid: int, timeout: int = 60) -> None:
+    """Wait until all descendant processes are gone, then add extra grace time."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            out = subprocess.check_output(
+                ["pgrep", "-g", str(pid)], stderr=subprocess.DEVNULL
+            )
+            if not out.strip():
+                break
+        except subprocess.CalledProcessError:
+            break
+        time.sleep(2)
+    # Extra grace for HCCL/NPU ports and HBM to release
+    time.sleep(15)
+    # Poll NPU memory until all devices show near-zero usage
+    _wait_npu_memory_free(timeout=60)
 
 
 def _close_log_handles(proc: subprocess.Popen) -> None:
