@@ -39,12 +39,13 @@ from _common import (
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Test vLLM serve CLI parameters for Ascend compatibility")
-    p.add_argument("--host", default=None, help="Host to pass to vllm serve")
+    p.add_argument("--host", default="localhost", help="Host to pass to vllm serve")
     p.add_argument("--port", type=int, default=None, help="Port override (default: auto)")
     p.add_argument("--nodes", required=True, choices=["all", "single"])
     p.add_argument("--section", default=None, help="Section name (required when --nodes single)")
     p.add_argument("--param", default=None, metavar="PARAM",
-                   help="Single param name to test, e.g. --param=--disable-log-stats")
+                   help="Single param to test, e.g. --param=--disable-log-stats or "
+                        "--param=--structured-outputs-config.disable_any_whitespace")
     p.add_argument("--test-value", default=None, help="Filter by test_value, e.g. true or false")
     p.add_argument("--timeout", type=int, default=180)
     p.add_argument("--params-yaml", default=None, help="Override path to params_simple.yaml")
@@ -62,11 +63,55 @@ def build_parser() -> argparse.ArgumentParser:
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _param_key(param_entry: dict) -> str:
-    """Build a filesystem-safe key like `disable_log_stats_True`."""
+def _parse_param_filter(raw: str | None) -> tuple[str | None, str | None]:
+    """Split --param value into (parent_filter, subfield_filter).
+
+    Examples:
+        "--disable-log-stats"                                → ("--disable-log-stats", None)
+        "--structured-outputs-config.disable_any_whitespace" → ("--structured-outputs-config", "disable_any_whitespace")
+        "--compilation-config.pass_config.fuse_norm_quant"   → ("--compilation-config", "pass_config.fuse_norm_quant")
+        None                                                 → (None, None)
+    """
+    if raw is None:
+        return None, None
+    dot_idx = raw.find(".")
+    if dot_idx == -1:
+        return raw, None
+    return raw[:dot_idx], raw[dot_idx + 1:]
+
+
+def _param_display(section_name: str, param_entry: dict) -> str:
+    """Build a tree-style display string for progress output.
+
+    Normal params:   "section / --param=value"
+    Subfield params: "section / --parent / subfield=value"
+    """
     name = param_entry.get("name", "unknown")
-    tv = param_entry.get("test_value")
-    return f"{name.lstrip('-').replace('-', '_')}_{tv}"
+    sfs = param_entry.get("subfields")
+    if sfs:
+        sf = sfs[0]
+        return f"{section_name} / {name} / {sf['name']}={sf['test_value']}"
+    return f"{section_name} / {name}={param_entry.get('test_value')}"
+
+
+def _param_key(param_entry: dict) -> str:
+    """Build a filesystem-safe key like `disable_log_stats_True`
+    or `structured_outputs_config__disable_any_whitespace_True`."""
+    name = param_entry.get("name", "unknown").lstrip("-").replace("-", "_")
+    sfs = param_entry.get("subfields")
+    if sfs:
+        sf = sfs[0]
+        sf_name = sf["name"].replace(".", "_")
+        return f"{name}__{sf_name}_{sf['test_value']}"
+    return f"{name}_{param_entry.get('test_value')}"
+
+
+def _param_test_value(param_entry: dict):
+    """Return the effective test_value for display/filtering."""
+    sfs = param_entry.get("subfields")
+    if sfs:
+        return sfs[0].get("test_value")
+    return param_entry.get("test_value")
 
 
 def _baseline_to_args(baseline: list[str], host: str | None) -> tuple[str, list[str]]:
@@ -101,6 +146,16 @@ def _write_json(path: Path, data: dict) -> None:
 def _collect_baseline_outputs(
     section_name: str, baseline: list[str], host: str | None, timeout: int,
 ) -> list[str] | None:
+    cached = _common.LOG_DIR / "accuracy" / section_name / "baseline.json"
+    if cached.exists():
+        try:
+            data = _json.loads(cached.read_text(encoding="utf-8"))
+            if data.get("status") == "ok" and data.get("outputs"):
+                emit_progress("accuracy_baseline", f"reusing cached baseline for {section_name}")
+                return data["outputs"]
+        except (ValueError, KeyError):
+            pass
+
     model, baseline_args = _baseline_to_args(baseline, host)
     port = find_free_port()
     emit_progress("accuracy_baseline", f"collecting baseline outputs for {section_name} on port {port}")
@@ -108,18 +163,18 @@ def _collect_baseline_outputs(
     try:
         proc = start_vllm_serve(model, baseline_args, port,
                                 log_prefix=f"{section_name}/baseline", use_baseline_args=False)
-        if not wait_for_ready(port, timeout, host=host or "localhost"):
+        if not wait_for_ready(port, timeout, host=host or "127.0.0.1"):
             emit_progress("accuracy_baseline", "baseline service health timeout")
             return None
         served_model = _get_served_model(baseline)
-        ok, outputs, err = send_accuracy_request(served_model, port, host=host or "localhost")
+        ok, outputs, err = send_accuracy_request(served_model, port, host=host or "127.0.0.1")
         log_data: dict
         if ok:
             log_data = {"status": "ok", "prompts": list(ACCURACY_PROMPTS),
                         "outputs": outputs, "timestamp": now_utc()}
         else:
             log_data = {"status": "failed", "error": err, "timestamp": now_utc()}
-        _write_json(_common.LOG_DIR / "accuracy" / section_name / "baseline.json", log_data)
+        _write_json(cached, log_data)
         if ok:
             emit_progress("accuracy_baseline", f"baseline outputs collected: {len(outputs)} prompts")
             return outputs
@@ -152,10 +207,11 @@ def test_param(
 ) -> dict:
     name = param_entry.get("name", "")
     pkey = _param_key(param_entry)
+    tv = _param_test_value(param_entry)
     extra = build_extra_args_simple(param_entry)
     model, baseline_args = _baseline_to_args(baseline, host)
 
-    emit_progress("test", f"testing {section_name} {name}={param_entry.get('test_value')}", param=name, port=port)
+    emit_progress("test", f"testing {_param_display(section_name, param_entry)}", param=name, port=port)
 
     proc = None
     try:
@@ -163,14 +219,14 @@ def test_param(
             model, baseline_args + extra, port,
             log_prefix=f"{section_name}/{pkey}", use_baseline_args=False,
         )
-        if not wait_for_ready(port, timeout, host=host or "localhost"):
-            _, stderr = read_serve_logs(proc)
-            return {"section": section_name, "param": name, "test_value": param_entry.get("test_value"),
-                    "status": "FAIL", "notes": f"health timeout: {stderr[-300:]}"}
+        if not wait_for_ready(port, timeout, host=host or "127.0.0.1"):
+            stdout_log, _ = read_serve_logs(proc)
+            return {"section": section_name, "param": name, "test_value": tv,
+                    "status": "FAIL", "notes": f"health timeout: {stdout_log[-500:]}"}
 
         served_model = _get_served_model(baseline)
-        ok, err = send_completion_request(served_model, port, host=host or "localhost")
-        result = {"section": section_name, "param": name, "test_value": param_entry.get("test_value"),
+        ok, err = send_completion_request(served_model, port, host=host or "127.0.0.1")
+        result = {"section": section_name, "param": name, "test_value": tv,
                   "status": "PASS" if ok else "FAIL", "notes": "" if ok else err}
 
         if ok and bench:
@@ -185,7 +241,7 @@ def test_param(
 
         if ok and accuracy and baseline_outputs is not None:
             try:
-                a_ok, test_outputs, a_err = send_accuracy_request(served_model, port, host=host or "localhost")
+                a_ok, test_outputs, a_err = send_accuracy_request(served_model, port, host=host or "127.0.0.1")
                 acc_path = _common.LOG_DIR / "accuracy" / section_name / f"{pkey}.json"
                 if a_ok:
                     cmp = compare_accuracy(baseline_outputs, test_outputs)
@@ -204,7 +260,7 @@ def test_param(
 
         return result
     except Exception as e:
-        return {"section": section_name, "param": name, "test_value": param_entry.get("test_value"),
+        return {"section": section_name, "param": name, "test_value": tv,
                 "status": "FAIL", "notes": f"exception: {e}"}
     finally:
         if proc is not None:
@@ -216,15 +272,20 @@ def test_param(
 # ---------------------------------------------------------------------------
 
 def _iter_params(section_data: list[dict], filter_param: str | None, filter_test_value=None):
+    parent_filter, subfield_filter = _parse_param_filter(filter_param)
     for p in section_data:
         if "subfields" in p:
             parent_cli = p["name"]
+            if parent_filter is not None and parent_cli != parent_filter:
+                continue
             for sf in p["subfields"]:
+                if subfield_filter is not None and sf["name"] != subfield_filter:
+                    continue
                 entry = {"name": parent_cli, "test_value": None, "subfields": [sf]}
-                if filter_param is None or parent_cli == filter_param:
+                if filter_test_value is None or str(sf.get("test_value")).lower() == str(filter_test_value).lower():
                     yield entry
         else:
-            if filter_param is None or p["name"] == filter_param:
+            if parent_filter is None or p["name"] == parent_filter:
                 if filter_test_value is None or str(p.get("test_value")).lower() == str(filter_test_value).lower():
                     yield p
 
@@ -287,7 +348,7 @@ def main() -> None:
                                 bench_concurrency=args.bench_concurrency,
                                 accuracy=args.accuracy, baseline_outputs=baseline_outputs)
             results.append(result)
-            emit_progress("result", f"{sname} {result['param']}={result['test_value']}: {result['status']}")
+            emit_progress("result", f"{_param_display(sname, entry)}: {result['status']}")
 
     passed = sum(1 for r in results if r["status"] == "PASS")
     failed = sum(1 for r in results if r["status"] == "FAIL")
@@ -298,7 +359,18 @@ def main() -> None:
 
     results_dir = _common.LOG_DIR / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
-    _write_json(results_dir / "summary_latest.json", summary)
+
+    summary_file = results_dir / "summary.json"
+    if summary_file.exists():
+        existing = _json.loads(summary_file.read_text(encoding="utf-8"))
+        if isinstance(existing, list):
+            existing.append(summary)
+        else:
+            existing = [existing, summary]
+    else:
+        existing = [summary]
+    summary_file.write_text(_json.dumps(existing, indent=2, ensure_ascii=False), encoding="utf-8")
+
     print_json(summary)
 
 

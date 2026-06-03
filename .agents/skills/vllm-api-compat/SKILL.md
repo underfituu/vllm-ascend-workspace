@@ -46,7 +46,7 @@ Each parameter is tested by launching a local `vllm serve` process with that par
 
 ```bash
 export PYTHONPATH="/path/to/vllm-ascend-workspace/vllm:$PYTHONPATH"
-export ASCEND_RT_VISIBLE_DEVICES=4,5,6,7
+export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3
 
 python3 .agents/skills/vllm-api-compat/scripts/cli.py \
   --host <serve-host> \
@@ -66,6 +66,42 @@ python3 .agents/skills/vllm-api-compat/scripts/cli.py \
   --nodes single \
   --section GlobalOptions \
   --param=--disable-log-stats \
+  --timeout 400
+```
+
+### Test a single subfield
+
+```bash
+# Test disable_any_whitespace under --structured-outputs-config (both true and false)
+python3 .agents/skills/vllm-api-compat/scripts/cli.py \
+  --host <serve-host> \
+  --nodes single \
+  --section VllmConfig \
+  --param=--structured-outputs-config.disable_any_whitespace \
+  --timeout 400
+```
+
+### Test a single subfield with specific test_value
+
+```bash
+python3 .agents/skills/vllm-api-compat/scripts/cli.py \
+  --host <serve-host> \
+  --nodes single \
+  --section VllmConfig \
+  --param=--structured-outputs-config.disable_any_whitespace \
+  --test-value true \
+  --timeout 400
+```
+
+### Test a dotted subfield (nested JSON key)
+
+```bash
+# pass_config.fuse_norm_quant under --compilation-config
+python3 .agents/skills/vllm-api-compat/scripts/cli.py \
+  --host <serve-host> \
+  --nodes single \
+  --section VllmConfig \
+  --param=--compilation-config.pass_config.fuse_norm_quant \
   --timeout 400
 ```
 
@@ -127,7 +163,7 @@ GITHUB_TOKEN=ghp_... python3 .agents/skills/vllm-api-compat/scripts/daily_check.
 | `--port` | auto | Override port; otherwise a free port is chosen per test |
 | `--nodes` | required | `all` or `single` |
 | `--section` | — | Section name (required when `--nodes single`) |
-| `--param` | — | Single param CLI name, e.g. `--param=--disable-log-stats` |
+| `--param` | — | Single param CLI name, e.g. `--param=--disable-log-stats`. For subfields use dot syntax: `--param=--structured-outputs-config.disable_any_whitespace` |
 | `--test-value` | — | Filter by test_value, e.g. `true` or `false` |
 | `--timeout` | 180 | Health-check timeout in seconds (use 400+ for DP2xTP2) |
 | `--log-path` | `./server-api-log` | Root log dir |

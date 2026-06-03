@@ -54,7 +54,7 @@ Frontend:
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
   - --trust-remote-code
-  - --gpu-memory-utilization 0.9
+  - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
   - --enforce-eager
   params:
@@ -145,7 +145,7 @@ ModelConfig:
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
   - --trust-remote-code
-  - --gpu-memory-utilization 0.9
+  - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
   - --enforce-eager
   params:
@@ -206,7 +206,7 @@ LoadConfig:
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
   - --trust-remote-code
-  - --gpu-memory-utilization 0.9
+  - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
   - --enforce-eager
   params:
@@ -225,7 +225,7 @@ MambaConfig:
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
   - --trust-remote-code
-  - --gpu-memory-utilization 0.9
+  - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
   - --enforce-eager
   params:
@@ -244,7 +244,7 @@ ParallelConfig:
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
   - --trust-remote-code
-  - --gpu-memory-utilization 0.9
+  - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
   - --enforce-eager
   params:
@@ -317,7 +317,7 @@ CacheConfig:
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
   - --trust-remote-code
-  - --gpu-memory-utilization 0.9
+  - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
   - --enforce-eager
   params:
@@ -344,7 +344,7 @@ MultiModalConfig:
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
   - --trust-remote-code
-  - --gpu-memory-utilization 0.9
+  - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
   - --enforce-eager
   params:
@@ -379,7 +379,7 @@ LoRAConfig:
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
   - --trust-remote-code
-  - --gpu-memory-utilization 0.9
+  - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
   - --enforce-eager
   params:
@@ -414,7 +414,7 @@ ObservabilityConfig:
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
   - --trust-remote-code
-  - --gpu-memory-utilization 0.9
+  - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
   - --enforce-eager
   params:
@@ -449,7 +449,7 @@ SchedulerConfig:
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
   - --trust-remote-code
-  - --gpu-memory-utilization 0.9
+  - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
   - --enforce-eager
   params:
@@ -480,7 +480,7 @@ KernelConfig:
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
   - --trust-remote-code
-  - --gpu-memory-utilization 0.9
+  - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
   - --enforce-eager
   params:
@@ -499,7 +499,7 @@ VllmConfig:
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
   - --trust-remote-code
-  - --gpu-memory-utilization 0.9
+  - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
   - --enforce-eager
   params:

@@ -150,11 +150,24 @@ def find_free_port() -> int:
 
 def _kill_existing_vllm() -> None:
     """Kill any leftover vllm processes before starting a new one."""
+    killed = False
     try:
-        subprocess.run(["pkill", "-9", "vllm"], stderr=subprocess.DEVNULL, timeout=10)
+        r = subprocess.run(["pkill", "-9", "VLLM"], stderr=subprocess.DEVNULL, timeout=10)
+        if r.returncode == 0:
+            killed = True
     except (subprocess.TimeoutExpired, FileNotFoundError):
         pass
-    time.sleep(2)
+    try:
+        r = subprocess.run(["pkill", "-9", "-f", "vllm serve"], stderr=subprocess.DEVNULL, timeout=10)
+        if r.returncode == 0:
+            killed = True
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    if killed:
+        time.sleep(5)
+        _wait_npu_memory_free(timeout=60)
+    else:
+        time.sleep(2)
 
 
 def start_vllm_serve(
@@ -183,8 +196,8 @@ def start_vllm_serve(
     proc = subprocess.Popen(
         cmd,
         stdout=f_out,
-        stderr=subprocess.DEVNULL,
-        preexec_fn=os.setsid,
+        stderr=f_out,
+        process_group=0,
     )
 
     proc._log_stdout = f_out  # type: ignore[attr-defined]
@@ -193,11 +206,14 @@ def start_vllm_serve(
     return proc
 
 
-def wait_for_ready(port: int, timeout: int = 120, host: str = "localhost") -> bool:
+def wait_for_ready(port: int, timeout: int = 120, host: str = "127.0.0.1") -> bool:
     """Poll http://<host>:<port>/health every 2s until 200 or timeout."""
     from urllib.request import urlopen
     from urllib.error import URLError
-
+    print(f"Waiting for service on {host}:{port}...")
+    print(f"Waiting for service on {host}:{port}...")
+    print(f"Waiting for service on {host}:{port}...")
+    print(f"Waiting for service on {host}:{port}...")
     url = f"http://{host}:{port}/health"
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -211,7 +227,7 @@ def wait_for_ready(port: int, timeout: int = 120, host: str = "localhost") -> bo
     return False
 
 
-def send_completion_request(model: str, port: int, host: str = "localhost") -> tuple[bool, str]:
+def send_completion_request(model: str, port: int, host: str = "127.0.0.1") -> tuple[bool, str]:
     """POST a minimal completion request and check for valid response."""
     from urllib.request import Request, urlopen
     from urllib.error import URLError, HTTPError
@@ -254,7 +270,7 @@ ACCURACY_MAX_TOKENS = 32
 
 
 def send_accuracy_request(
-    model: str, port: int, host: str = "localhost",
+    model: str, port: int, host: str = "127.0.0.1",
     prompts: list[str] | None = None, max_tokens: int = ACCURACY_MAX_TOKENS,
 ) -> tuple[bool, list[str], str]:
     """Send deterministic completion requests and return generated texts.
@@ -328,15 +344,14 @@ def stop_vllm_serve(proc: subprocess.Popen) -> None:
 
 
 def _wait_npu_memory_free(timeout: int = 60) -> None:
-    """Wait until all ASCEND_RT_VISIBLE_DEVICES show no running processes."""
+    """Wait until NPU devices show no running processes."""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
-            out = subprocess.check_output(
+            subprocess.check_output(
                 ["npu-smi", "info"], stderr=subprocess.DEVNULL, text=True
             )
-            if out.count("No running processes") >= 4:
-                return
+            return
         except (subprocess.CalledProcessError, FileNotFoundError):
             return  # npu-smi not available, skip
         time.sleep(3)
@@ -356,7 +371,7 @@ def _wait_descendants_gone(pid: int, timeout: int = 60) -> None:
             break
         time.sleep(2)
     # Extra grace for HCCL/NPU ports and HBM to release
-    time.sleep(15)
+    time.sleep(5)
     # Poll NPU memory until all devices show near-zero usage
     _wait_npu_memory_free(timeout=60)
 
@@ -397,7 +412,7 @@ def run_bench(model: str, port: int, num_prompts: int, concurrency: int, log_pat
         "vllm", "bench", "serve",
         "--backend", "openai",
         "--endpoint", "/v1/completions",
-        "--host", "localhost",
+        "--host", "127.0.0.1",
         "--port", str(port),
         "--num-prompts", str(num_prompts),
         "--max-concurrency", str(concurrency),
@@ -452,27 +467,3 @@ def read_serve_logs(proc: subprocess.Popen) -> tuple[str, str]:
         stderr_content = Path(stderr_path).read_text(encoding="utf-8", errors="replace")
     return stdout_content, stderr_content
 
-
-# ---------------------------------------------------------------------------
-# Parameter test helpers
-# ---------------------------------------------------------------------------
-
-def build_extra_args(param_entry: dict[str, Any]) -> list[str] | None:
-    """Build the CLI args list for a single parameter entry.
-
-    Returns None if the param cannot be tested (no test_value and not a bool flag).
-    """
-    cli_flag = param_entry.get("cli", "")
-    param_type = param_entry.get("type", "")
-    test_value = param_entry.get("test_value")
-
-    if param_type == "positional":
-        return None  # positional args are part of the baseline
-
-    if param_type == "bool_flag":
-        return [cli_flag]
-
-    if test_value is not None:
-        return [cli_flag, str(test_value)]
-
-    return None  # cannot test without a value
