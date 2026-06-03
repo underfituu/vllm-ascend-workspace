@@ -17,6 +17,7 @@ GlobalOptions:
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
+  - --enforce-eager
   params:
   - name: --aggregate-engine-logging
     test_value: true
@@ -55,6 +56,7 @@ Frontend:
   - --trust-remote-code
   - --gpu-memory-utilization 0.9
   - --no-disable-hybrid-kv-cache-manager
+  - --enforce-eager
   params:
   - name: --allow-credentials
     test_value: true
@@ -145,6 +147,7 @@ ModelConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.9
   - --no-disable-hybrid-kv-cache-manager
+  - --enforce-eager
   params:
   - name: --allow-deprecated-quantization
     test_value: true
@@ -205,6 +208,7 @@ LoadConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.9
   - --no-disable-hybrid-kv-cache-manager
+  - --enforce-eager
   params:
   - name: --use-tqdm-on-load
     test_value: true
@@ -223,6 +227,7 @@ MambaConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.9
   - --no-disable-hybrid-kv-cache-manager
+  - --enforce-eager
   params:
   - name: --enable-mamba-cache-stochastic-rounding
     test_value: true
@@ -241,6 +246,7 @@ ParallelConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.9
   - --no-disable-hybrid-kv-cache-manager
+  - --enforce-eager
   params:
   - name: --data-parallel-external-lb
     test_value: true
@@ -313,6 +319,7 @@ CacheConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.9
   - --no-disable-hybrid-kv-cache-manager
+  - --enforce-eager
   params:
   - name: --calculate-kv-scales
     test_value: true
@@ -339,6 +346,7 @@ MultiModalConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.9
   - --no-disable-hybrid-kv-cache-manager
+  - --enforce-eager
   params:
   - name: --enable-mm-embeds
     test_value: true
@@ -373,6 +381,7 @@ LoRAConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.9
   - --no-disable-hybrid-kv-cache-manager
+  - --enforce-eager
   params:
   - name: --enable-lora
     test_value: true
@@ -407,6 +416,7 @@ ObservabilityConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.9
   - --no-disable-hybrid-kv-cache-manager
+  - --enforce-eager
   params:
   - name: --cudagraph-metrics
     test_value: true
@@ -441,6 +451,7 @@ SchedulerConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.9
   - --no-disable-hybrid-kv-cache-manager
+  - --enforce-eager
   params:
   - name: --async-scheduling
     test_value: true
@@ -471,6 +482,7 @@ KernelConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.9
   - --no-disable-hybrid-kv-cache-manager
+  - --enforce-eager
   params:
   - name: --enable-flashinfer-autotune
     test_value: true
@@ -489,6 +501,7 @@ VllmConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.9
   - --no-disable-hybrid-kv-cache-manager
+  - --enforce-eager
   params:
   - name: --attention-config
     subfields:

@@ -148,6 +148,15 @@ def find_free_port() -> int:
 # Local vllm serve lifecycle
 # ---------------------------------------------------------------------------
 
+def _kill_existing_vllm() -> None:
+    """Kill any leftover vllm processes before starting a new one."""
+    try:
+        subprocess.run(["pkill", "-9", "vllm"], stderr=subprocess.DEVNULL, timeout=10)
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    time.sleep(2)
+
+
 def start_vllm_serve(
     model: str,
     extra_args: list[str],
@@ -157,14 +166,12 @@ def start_vllm_serve(
 ) -> subprocess.Popen:
     """Launch a local vllm serve process.
 
-    Returns the Popen handle. stdout/stderr are written to log files under
-    RESULTS_DIR so the caller can inspect them on failure.
+    Returns the Popen handle. stdout is written to a log file under
+    LOG_DIR/serve/ so the caller can inspect it on failure.
     """
-    serve_dir = LOG_DIR / "serve"
-    serve_dir.mkdir(parents=True, exist_ok=True)
-    ts = now_utc().replace(":", "-")
-    log_stdout = serve_dir / f"{log_prefix}_{ts}_stdout.log"
-    log_stderr = serve_dir / f"{log_prefix}_{ts}_stderr.log"
+    _kill_existing_vllm()
+    log_stdout = LOG_DIR / "serve" / f"{log_prefix}_stdout.log"
+    log_stdout.parent.mkdir(parents=True, exist_ok=True)
 
     baseline = BASELINE_ARGS if use_baseline_args else []
     cmd = ["vllm", "serve", model, "--port", str(port)] + baseline + extra_args
@@ -172,20 +179,16 @@ def start_vllm_serve(
     emit_progress("serve_start", f"starting: {' '.join(cmd)}")
 
     f_out = open(log_stdout, "w", encoding="utf-8")
-    f_err = open(log_stderr, "w", encoding="utf-8")
 
     proc = subprocess.Popen(
         cmd,
         stdout=f_out,
-        stderr=f_err,
-        preexec_fn=os.setsid,  # new process group for clean kill
+        stderr=subprocess.DEVNULL,
+        preexec_fn=os.setsid,
     )
 
-    # Attach log file handles so we can close them later
     proc._log_stdout = f_out  # type: ignore[attr-defined]
-    proc._log_stderr = f_err  # type: ignore[attr-defined]
     proc._log_stdout_path = log_stdout  # type: ignore[attr-defined]
-    proc._log_stderr_path = log_stderr  # type: ignore[attr-defined]
 
     return proc
 
@@ -240,6 +243,63 @@ def send_completion_request(model: str, port: int, host: str = "localhost") -> t
         return False, f"connection error: {e}"
     except json.JSONDecodeError:
         return False, "response is not valid JSON"
+
+
+ACCURACY_PROMPTS = [
+    "The capital of France is",
+    "1 + 1 =",
+    "The color of the sky is",
+]
+ACCURACY_MAX_TOKENS = 32
+
+
+def send_accuracy_request(
+    model: str, port: int, host: str = "localhost",
+    prompts: list[str] | None = None, max_tokens: int = ACCURACY_MAX_TOKENS,
+) -> tuple[bool, list[str], str]:
+    """Send deterministic completion requests and return generated texts.
+
+    Returns (ok, outputs, error). Each output corresponds to a prompt.
+    Uses temperature=0 for reproducibility.
+    """
+    from urllib.request import Request, urlopen
+    from urllib.error import URLError, HTTPError
+
+    prompts = prompts or ACCURACY_PROMPTS
+    url = f"http://{host}:{port}/v1/completions"
+    outputs = []
+    for prompt in prompts:
+        payload = json.dumps({
+            "model": model,
+            "prompt": prompt,
+            "max_tokens": max_tokens,
+            "temperature": 0,
+        }).encode("utf-8")
+        req = Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            resp = urlopen(req, timeout=60)
+            data = json.loads(resp.read().decode("utf-8"))
+            if "choices" not in data or not data["choices"]:
+                return False, outputs, f"missing choices for prompt: {prompt[:30]}"
+            outputs.append(data["choices"][0].get("text", ""))
+        except (HTTPError, URLError, OSError, ConnectionError, json.JSONDecodeError) as e:
+            return False, outputs, f"request failed for prompt '{prompt[:30]}': {e}"
+    return True, outputs, ""
+
+
+def compare_accuracy(baseline_outputs: list[str], test_outputs: list[str]) -> dict:
+    """Compare two sets of outputs and return match results."""
+    total = len(baseline_outputs)
+    matches = sum(1 for a, b in zip(baseline_outputs, test_outputs) if a == b)
+    details = []
+    for i, (a, b) in enumerate(zip(baseline_outputs, test_outputs)):
+        details.append({
+            "prompt_index": i,
+            "match": a == b,
+            "baseline": a[:200],
+            "test": b[:200],
+        })
+    return {"total": total, "matched": matches, "pass": matches == total, "details": details}
 
 
 def stop_vllm_serve(proc: subprocess.Popen) -> None:
@@ -306,6 +366,78 @@ def _close_log_handles(proc: subprocess.Popen) -> None:
         fh = getattr(proc, attr, None)
         if fh and not fh.closed:
             fh.close()
+
+
+def _parse_bench_table(stdout: str) -> dict:
+    import re
+    result = {}
+    patterns = {
+        "request_throughput":  r"Request throughput \(req/s\):\s+([\d.]+)",
+        "output_throughput":   r"Output token throughput \(tok/s\):\s+([\d.]+)",
+        "mean_ttft_ms":        r"Mean TTFT \(ms\):\s+([\d.]+)",
+        "median_ttft_ms":      r"Median TTFT \(ms\):\s+([\d.]+)",
+        "mean_tpot_ms":        r"Mean TPOT \(ms\):\s+([\d.]+)",
+        "median_tpot_ms":      r"Median TPOT \(ms\):\s+([\d.]+)",
+        "total_input":         r"Total input tokens:\s+([\d.]+)",
+        "total_output":        r"Total generated tokens:\s+([\d.]+)",
+    }
+    for key, pat in patterns.items():
+        m = re.search(pat, stdout)
+        if m:
+            result[key] = float(m.group(1))
+    if not result:
+        raise RuntimeError(f"cannot parse bench output:\n{stdout[-2000:]}")
+    return result
+
+
+def run_bench(model: str, port: int, num_prompts: int, concurrency: int, log_path: Path,
+              log_name: str = "bench_latest") -> dict:
+    """Run vllm bench serve and return the parsed result JSON."""
+    cmd = [
+        "vllm", "bench", "serve",
+        "--backend", "openai",
+        "--endpoint", "/v1/completions",
+        "--host", "localhost",
+        "--port", str(port),
+        "--num-prompts", str(num_prompts),
+        "--max-concurrency", str(concurrency),
+    ]
+    emit_progress("bench_run", f"running: {' '.join(cmd)}")
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"vllm bench serve failed (rc={proc.returncode}):\n"
+            f"stdout: {proc.stdout[-2000:]}\nstderr: {proc.stderr[-2000:]}"
+        )
+    stdout = proc.stdout
+    json_start = stdout.rfind("\n{")
+    json_start = json_start + 1 if json_start != -1 else (0 if stdout.startswith("{") else -1)
+    if json_start != -1:
+        result = json.loads(stdout[json_start:])
+    else:
+        result = _parse_bench_table(stdout)
+    bench_log = log_path / "bench" / f"{log_name}.log"
+    bench_log.parent.mkdir(parents=True, exist_ok=True)
+    bench_log.write_text(stdout, encoding="utf-8")
+    return result
+
+
+def extract_metrics(raw_result: dict) -> dict:
+    metrics = {}
+    for key in (
+        "output_throughput", "mean_tpot_ms", "mean_ttft_ms",
+        "median_tpot_ms", "median_ttft_ms", "request_throughput",
+        "mean_e2el_ms", "median_e2el_ms", "total_input", "total_output",
+    ):
+        if key in raw_result:
+            val = raw_result[key]
+            if isinstance(val, str):
+                try:
+                    val = float(val)
+                except ValueError:
+                    pass
+            metrics[key] = val
+    return metrics
 
 
 def read_serve_logs(proc: subprocess.Popen) -> tuple[str, str]:

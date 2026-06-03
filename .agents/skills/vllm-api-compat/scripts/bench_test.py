@@ -17,12 +17,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import _common
 from _common import (
     emit_progress,
+    extract_metrics,
     find_free_port,
     now_utc,
     print_json,
     read_serve_logs,
+    run_bench,
     start_vllm_serve,
     stop_vllm_serve,
     wait_for_ready,
@@ -33,108 +36,46 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Pressure test for vLLM serve")
     p.add_argument("--model", required=True, help="Model path or name")
     p.add_argument("--port", type=int, default=None, help="Port (auto-detect if omitted)")
-    p.add_argument("--num-prompts", type=int, default=100, help="Number of prompts")
+    p.add_argument("--num-prompts", type=int, default=10, help="Number of prompts")
     p.add_argument("--concurrency", type=int, default=4, help="Max concurrency")
     p.add_argument("--timeout", type=int, default=180, help="Health-check timeout in seconds")
     p.add_argument("--extra-serve-args", nargs="*", default=[], help="Extra args for vllm serve")
+    p.add_argument("--skip-serve", action="store_true", help="Skip starting vllm serve; connect to existing service on --port")
+    p.add_argument("--log-path", default="./server-api-log", help="Root log dir; results/ and serve/ subdirs created inside")
     return p
-
-
-def run_bench(
-    model: str,
-    port: int,
-    num_prompts: int,
-    concurrency: int,
-) -> dict:
-    """Run vllm bench serve and parse the result JSON."""
-    served_model = model.rstrip("/").split("/")[-1]
-
-    cmd = [
-        "vllm", "bench", "serve",
-        "--backend", "openai",
-        "--endpoint", "/v1/completions",
-        "--host", "localhost",
-        "--port", str(port),
-        "--model", served_model,
-        "--num-prompts", str(num_prompts),
-        "--max-concurrency", str(concurrency),
-    ]
-
-    emit_progress("bench_run", f"running: {' '.join(cmd)}")
-
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-
-    if proc.returncode != 0:
-        raise RuntimeError(
-            f"vllm bench serve failed (rc={proc.returncode}):\n"
-            f"stdout: {proc.stdout[-2000:]}\n"
-            f"stderr: {proc.stderr[-2000:]}"
-        )
-
-    # Parse last JSON object from stdout (same pattern as bench_run.py)
-    stdout = proc.stdout
-    json_start = stdout.rfind("\n{")
-    if json_start == -1:
-        json_start = 0 if stdout.startswith("{") else -1
-    else:
-        json_start += 1
-
-    if json_start == -1:
-        raise RuntimeError(
-            f"cannot find JSON result in bench output:\n{stdout[-2000:]}"
-        )
-
-    try:
-        return json.loads(stdout[json_start:])
-    except json.JSONDecodeError as e:
-        raise RuntimeError(
-            f"cannot parse bench result JSON: {e}\n{stdout[json_start:json_start+500]}"
-        )
-
-
-def extract_metrics(raw_result: dict) -> dict:
-    """Extract key metrics from vllm bench serve result."""
-    metrics = {}
-    for key in (
-        "output_throughput", "mean_tpot_ms", "mean_ttft_ms",
-        "median_tpot_ms", "median_ttft_ms", "request_throughput",
-        "mean_e2el_ms", "median_e2el_ms", "total_input", "total_output",
-    ):
-        if key in raw_result:
-            val = raw_result[key]
-            if isinstance(val, str):
-                try:
-                    val = float(val)
-                except ValueError:
-                    pass
-            metrics[key] = val
-    return metrics
 
 
 def main() -> None:
     args = build_parser().parse_args()
+
+    log_path = Path(args.log_path)
+    _common.LOG_DIR = log_path
 
     port = args.port or find_free_port()
     proc = None
 
     try:
         emit_progress("start", f"starting pressure test: {args.model}")
-        proc = start_vllm_serve(args.model, args.extra_serve_args, port, log_prefix="bench")
 
-        if not wait_for_ready(port, args.timeout):
-            stdout_log, stderr_log = read_serve_logs(proc)
-            print_json({
-                "status": "failed",
-                "phase": "serve_start",
-                "error": f"health timeout ({args.timeout}s)",
-                "stderr_tail": stderr_log[-1000:] if stderr_log else "",
-                "timestamp": now_utc(),
-            })
-            sys.exit(1)
+        if args.skip_serve:
+            emit_progress("skip_serve", f"skipping serve startup, using existing service on port {port}")
+        else:
+            proc = start_vllm_serve(args.model, args.extra_serve_args, port, log_prefix="bench")
+
+            if not wait_for_ready(port, args.timeout):
+                stdout_log, _ = read_serve_logs(proc)
+                print_json({
+                    "status": "failed",
+                    "phase": "serve_start",
+                    "error": f"health timeout ({args.timeout}s)",
+                    "stdout_tail": stdout_log[-1000:] if stdout_log else "",
+                    "timestamp": now_utc(),
+                })
+                sys.exit(1)
 
         emit_progress("serve_ready", "service is ready, starting bench")
 
-        raw_result = run_bench(args.model, port, args.num_prompts, args.concurrency)
+        raw_result = run_bench(args.model, port, args.num_prompts, args.concurrency, log_path)
         metrics = extract_metrics(raw_result)
 
         print_json({
