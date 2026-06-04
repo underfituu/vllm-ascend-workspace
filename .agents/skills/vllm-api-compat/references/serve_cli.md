@@ -669,15 +669,6 @@ Source of truth: `/home/hucong/serve_cli.log` (`vllm serve --help=all` output). 
 | --linear-backend | Enum | auto | aiter,auto,conch,cutlass,deep_gemm,emulation,exllama,fbgemm,flashinfer_cudnn,flashinfer_cutlass,flashinfer_trtllm,machete,marlin,torch,triton | Backend for quantized linear layer GEMM kernels.<br>Available options:<br>- "auto": Automatically select the best backend based<br>on model and hardware<br>- "cutlass": Use CUTLASS-based kernels<br>- "flashinfer_cutlass": Use FlashInfer with CUTLASS<br>kernels<br>- "flashinfer_trtllm": Use FlashInfer with TensorRT-<br>LLM kernels<br>- "flashinfer_cudnn": Use FlashInfer with cuDNN<br>kernels<br>- "marlin": Use Marlin kernels<br>- "triton": Use Triton-based kernels<br>- "deep_gemm": Use DeepGEMM kernels<br>- "torch": Use PyTorch native scaled_mm kernels<br>- "aiter": Use AMD AITer kernels (ROCm only)<br>- "machete": Use Machete kernels (mixed-precision)<br>- "fbgemm": Use FBGEMM kernels<br>- "conch": Use Conch mixed-precision kernels<br>- "exllama": Use Exllama mixed-precision kernels<br>- "emulation": Use slow dequant-to-BF16 emulation (for<br>testing only) |
 | --moe-backend | Enum | auto | aiter,auto,cutlass,deep_gemm,deep_gemm_mega_moe,emulation,flashinfer_b12x,flashinfer_cutedsl,flashinfer_cutlass,flashinfer_trtllm,humming,marlin,triton,triton_unfused | Backend for MoE expert computation kernels. Available<br>options:<br>- "auto": Automatically select the best backend based<br>on model and hardware<br>- "triton": Use Triton-based fused MoE kernels<br>- "deep_gemm": Use DeepGEMM kernels (FP8 block-<br>quantized only)<br>- "deep_gemm_mega_moe": Use DeepGEMM mega MoE kernels<br>- "cutlass": Use vLLM CUTLASS kernels<br>- "flashinfer_trtllm": Use FlashInfer with TRTLLM-GEN<br>kernels<br>- "flashinfer_cutlass": Use FlashInfer with CUTLASS<br>kernels<br>- "flashinfer_cutedsl": Use FlashInfer with CuteDSL<br>kernels (FP4 only)<br>- "flashinfer_b12x": Use FlashInfer CuteDSL fused MoE<br>for SM12x (RTX Pro 6000 / DGX Spark)<br>- "marlin": Use Marlin kernels (weight-only<br>quantization)<br>- "humming": Use Humming Mixed Precision kernels<br>- "triton_unfused": Use Triton unfused MoE kernels<br>- "aiter": Use AMD AITer kernels (ROCm only)<br>- "emulation": use BF16/FP16 GEMM, dequantizing<br>weights and running QDQ on activations. |
 
-**Nested fields (`KernelConfig`):**
-
-| Sub-field | Type | Default |
-| --- | --- | --- |
-| `ir_op_priority` | `IrOpPriorityConfig` | see below |
-| `enable_flashinfer_autotune` | `bool \| None` | `None` |
-| `moe_backend` | `MoEBackend` | `"auto"` |
-| `linear_backend` | `LinearBackend` | `"auto"` |
-
 **Nested fields (`IrOpPriorityConfig`, set via `ir_op_priority` key):**
 
 | Sub-field | Type | Default |
