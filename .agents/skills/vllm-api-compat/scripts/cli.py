@@ -41,7 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Test vLLM serve CLI parameters for Ascend compatibility")
     p.add_argument("--host", default="localhost", help="Host to pass to vllm serve")
     p.add_argument("--port", type=int, default=None, help="Port override (default: auto)")
-    p.add_argument("--nodes", required=True, choices=["all", "single"])
+    p.add_argument("--nodes", default=None, choices=["all", "single"])
     p.add_argument("--section", default=None, help="Section name (required when --nodes single)")
     p.add_argument("--param", default=None, metavar="PARAM",
                    help="Single param to test, e.g. --param=--disable-log-stats or "
@@ -49,13 +49,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--test-value", default=None, help="Filter by test_value, e.g. true or false")
     p.add_argument("--timeout", type=int, default=180)
     p.add_argument("--params-yaml", default=None, help="Override path to params_simple.yaml")
-    p.add_argument("--log-path", default="./server-api-log",
-                   help="Root log directory")
+    p.add_argument("--log-path", default="./server-api-log", help="Root log directory")
     p.add_argument("--bench", action="store_true", help="Run pressure test after each PASS")
     p.add_argument("--bench-num-prompts", type=int, default=10)
     p.add_argument("--bench-concurrency", type=int, default=4)
     p.add_argument("--accuracy", action="store_true",
                    help="Run accuracy check: compare outputs against baseline with temperature=0")
+    p.add_argument("--rerun-failed", default=None, metavar="SUMMARY_JSON",
+                   help="Re-run all FAIL entries from a summary.json (overrides --nodes/--section/--param)")
     return p
 
 
@@ -78,6 +79,15 @@ def _parse_param_filter(raw: str | None) -> tuple[str | None, str | None]:
     if dot_idx == -1:
         return raw, None
     return raw[:dot_idx], raw[dot_idx + 1:]
+
+
+def _param_full_name(param_entry: dict) -> str:
+    """Return the full param name including subfield, e.g. --structured-outputs-config.disable_any_whitespace."""
+    name = param_entry.get("name", "unknown")
+    sfs = param_entry.get("subfields")
+    if sfs:
+        return f"{name}.{sfs[0]['name']}"
+    return name
 
 
 def _param_display(section_name: str, param_entry: dict) -> str:
@@ -137,6 +147,19 @@ def _get_served_model(baseline: list[str]) -> str:
 def _write_json(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(_json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _upsert_summary(summary_file: Path, result: dict) -> None:
+    """Insert or replace a result in summary.json, keyed by (section, param, test_value)."""
+    existing = _json.loads(summary_file.read_text(encoding="utf-8")) if summary_file.exists() else []
+    key = (result.get("section"), result.get("param"), result.get("test_value"))
+    for i, r in enumerate(existing):
+        if (r.get("section"), r.get("param"), r.get("test_value")) == key:
+            existing[i] = result
+            break
+    else:
+        existing.append(result)
+    summary_file.write_text(_json.dumps(existing, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -205,13 +228,13 @@ def test_param(
     accuracy: bool = False,
     baseline_outputs: list[str] | None = None,
 ) -> dict:
-    name = param_entry.get("name", "")
+    full_name = _param_full_name(param_entry)
     pkey = _param_key(param_entry)
     tv = _param_test_value(param_entry)
     extra = build_extra_args_simple(param_entry)
     model, baseline_args = _baseline_to_args(baseline, host)
 
-    emit_progress("test", f"testing {_param_display(section_name, param_entry)}", param=name, port=port)
+    emit_progress("test", f"testing {_param_display(section_name, param_entry)}", param=full_name, port=port)
 
     proc = None
     try:
@@ -221,12 +244,12 @@ def test_param(
         )
         if not wait_for_ready(port, timeout, host=host or "127.0.0.1"):
             stdout_log, _ = read_serve_logs(proc)
-            return {"section": section_name, "param": name, "test_value": tv,
+            return {"section": section_name, "param": full_name, "test_value": tv,
                     "status": "FAIL", "notes": f"health timeout: {stdout_log[-500:]}"}
 
         served_model = _get_served_model(baseline)
         ok, err = send_completion_request(served_model, port, host=host or "127.0.0.1")
-        result = {"section": section_name, "param": name, "test_value": tv,
+        result = {"section": section_name, "param": full_name, "test_value": tv,
                   "status": "PASS" if ok else "FAIL", "notes": "" if ok else err}
 
         if ok and bench:
@@ -260,7 +283,7 @@ def test_param(
 
         return result
     except Exception as e:
-        return {"section": section_name, "param": name, "test_value": tv,
+        return {"section": section_name, "param": full_name, "test_value": tv,
                 "status": "FAIL", "notes": f"exception: {e}"}
     finally:
         if proc is not None:
@@ -310,6 +333,65 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args(_fix_argv(sys.argv[1:]))
 
+    _common.LOG_DIR = Path(args.log_path).resolve()
+
+    # --rerun-failed mode
+    if args.rerun_failed:
+        summary_path = Path(args.rerun_failed)
+        if not summary_path.exists():
+            sys.exit(f"Error: summary file not found: {summary_path}")
+        data = _json.loads(summary_path.read_text(encoding="utf-8"))
+        # support flat array of results or array of run summaries
+        if isinstance(data, list) and data and "results" in data[0]:
+            all_results = data[-1]["results"]
+        else:
+            all_results = data
+        failed = [r for r in all_results if r.get("status") == "FAIL"]
+        if not failed:
+            print_json({"status": "ok", "message": "no failed cases found"})
+            return
+        emit_progress("rerun", f"re-running {len(failed)} failed case(s)")
+
+        yaml_path = Path(args.params_yaml) if args.params_yaml else None
+        data_yaml = load_simple_params_yaml(yaml_path)
+        sections = {k: v for k, v in data_yaml.items() if k != "meta"}
+
+        results = []
+        results_dir = _common.LOG_DIR / "results"
+        results_dir.mkdir(parents=True, exist_ok=True)
+        summary_file = results_dir / "summary.json"
+
+        for r in failed:
+            sname = r["section"]
+            param_name = r["param"]
+            test_value = r.get("test_value")
+            if sname not in sections:
+                continue
+            sec = sections[sname]
+            tv_filter = str(test_value).lower() if test_value is not None else None
+            # strip subfield suffix for parent filter
+            parent_filter = param_name.split(".")[0] if "." in param_name else param_name
+            entries = list(_iter_params(sec["params"], parent_filter, tv_filter))
+            if not entries:
+                continue
+            baseline = sec["baseline"]
+            for entry in entries:
+                port = args.port or find_free_port()
+                result = test_param(sname, entry, baseline, args.host, port, args.timeout,
+                                    bench=args.bench, bench_num_prompts=args.bench_num_prompts,
+                                    bench_concurrency=args.bench_concurrency)
+                results.append(result)
+                emit_progress("result", f"{_param_display(sname, entry)}: {result['status']}")
+                _upsert_summary(summary_file, result)
+
+        passed = sum(1 for r in results if r["status"] == "PASS")
+        failed_count = sum(1 for r in results if r["status"] == "FAIL")
+        print_json({"status": "ok", "tested": len(results), "passed": passed,
+                    "failed": failed_count, "results": results, "timestamp": now_utc()})
+        return
+
+    if not args.nodes:
+        parser.error("--nodes is required (choices: all, single) unless using --rerun-failed")
     if args.nodes == "single" and not args.section:
         parser.error("--section is required when --nodes is single")
 
@@ -330,6 +412,10 @@ def main() -> None:
     emit_progress("start", f"sections={list(sections_to_test)}")
 
     results = []
+    results_dir = _common.LOG_DIR / "results"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    summary_file = results_dir / "summary.json"
+
     for sname, sec in sections_to_test.items():
         baseline = sec["baseline"]
         params = list(_iter_params(sec["params"], args.param, args.test_value))
@@ -350,26 +436,15 @@ def main() -> None:
             results.append(result)
             emit_progress("result", f"{_param_display(sname, entry)}: {result['status']}")
 
+            # Upsert this result into summary.json immediately
+            _upsert_summary(summary_file, result)
+
     passed = sum(1 for r in results if r["status"] == "PASS")
     failed = sum(1 for r in results if r["status"] == "FAIL")
     skipped = sum(1 for r in results if r["status"] == "SKIP")
     summary = {"status": "ok", "tested": len(results), "passed": passed,
                "failed": failed, "skipped": skipped, "results": results,
                "timestamp": now_utc()}
-
-    results_dir = _common.LOG_DIR / "results"
-    results_dir.mkdir(parents=True, exist_ok=True)
-
-    summary_file = results_dir / "summary.json"
-    if summary_file.exists():
-        existing = _json.loads(summary_file.read_text(encoding="utf-8"))
-        if isinstance(existing, list):
-            existing.append(summary)
-        else:
-            existing = [existing, summary]
-    else:
-        existing = [summary]
-    summary_file.write_text(_json.dumps(existing, indent=2, ensure_ascii=False), encoding="utf-8")
 
     print_json(summary)
 

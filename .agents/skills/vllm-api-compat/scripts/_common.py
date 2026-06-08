@@ -45,7 +45,9 @@ def build_extra_args_simple(param_entry: dict[str, Any]) -> list[str]:
     - bool_flag with test_value=True  → ["--flag"]
     - bool_flag with test_value=False → [] (omit; absence is the false state)
     - name starts with '--no-'        → ["--no-flag"] (always test_value=True)
-    - json_config (has subfields)     → build --flag '{"sub": val, ...}'
+    - json_config (has subfields)     → split subfields into:
+        - subfields with name starting '--': prerequisite CLI flags, prepended
+        - other subfields: JSON config keys for the main flag
     """
     import json as _json
     name = param_entry.get("name", "")
@@ -53,12 +55,13 @@ def build_extra_args_simple(param_entry: dict[str, Any]) -> list[str]:
     subfields = param_entry.get("subfields")
 
     if subfields is not None:
-        # json_config: compose a JSON object from all subfields
         obj = {}
         for sf in subfields:
             sfname = sf["name"]
             sfval = sf["test_value"]
-            # handle dotted keys: "pass_config.fuse_norm_quant" → nested dict
+            # merge deps (e.g. {"backend": "xgrammar"}) into obj first
+            for dk, dv in sf.get("deps", {}).items():
+                obj[dk] = dv
             parts = sfname.split(".")
             d = obj
             for part in parts[:-1]:
@@ -66,10 +69,19 @@ def build_extra_args_simple(param_entry: dict[str, Any]) -> list[str]:
             d[parts[-1]] = sfval
         return [name, _json.dumps(obj)]
 
-    if isinstance(test_value, bool):
-        return [name] if test_value else []
+    deps = param_entry.get("deps", {})
+    dep_args = []
+    for dk, dv in deps.items():
+        if isinstance(dv, bool):
+            if dv:
+                dep_args.append(dk)
+        else:
+            dep_args.extend([dk, str(dv)])
 
-    return [name, str(test_value)]
+    if isinstance(test_value, bool):
+        return dep_args + ([name] if test_value else [])
+
+    return dep_args + [name, str(test_value)]
 
 
 # ---------------------------------------------------------------------------

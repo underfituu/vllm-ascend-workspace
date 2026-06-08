@@ -17,7 +17,6 @@ GlobalOptions:
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
-  - --enforce-eager
   params:
   - name: --aggregate-engine-logging
     test_value: true
@@ -56,7 +55,6 @@ Frontend:
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
-  - --enforce-eager
   params:
   - name: --allow-credentials
     test_value: true
@@ -72,6 +70,8 @@ Frontend:
     test_value: true
   - name: --enable-auto-tool-choice
     test_value: true
+    deps:
+      --tool-call-parser: qwen3_coder
   - name: --no-enable-auto-tool-choice
     test_value: true
   - name: --enable-flash-late-interaction
@@ -88,6 +88,8 @@ Frontend:
     test_value: true
   - name: --enable-log-outputs
     test_value: true
+    deps:
+      --enable-log-requests: true
   - name: --no-enable-log-outputs
     test_value: true
   - name: --enable-offline-docs
@@ -147,7 +149,6 @@ ModelConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
-  - --enforce-eager
   params:
   - name: --allow-deprecated-quantization
     test_value: true
@@ -169,10 +170,6 @@ ModelConfig:
     test_value: true
   - name: --no-enable-prompt-embeds
     test_value: true
-  - name: --enable-return-routed-experts
-    test_value: true
-  - name: --no-enable-return-routed-experts
-    test_value: true
   - name: --enable-sleep-mode
     test_value: true
   - name: --no-enable-sleep-mode
@@ -187,8 +184,6 @@ ModelConfig:
       test_value: true
     - name: enable_chunked_processing
       test_value: false
-  - name: --skip-tokenizer-init
-    test_value: true
   - name: --no-skip-tokenizer-init
     test_value: true
   - name: --use-fp64-gumbel
@@ -208,7 +203,6 @@ LoadConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
-  - --enforce-eager
   params:
   - name: --use-tqdm-on-load
     test_value: true
@@ -227,10 +221,11 @@ MambaConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
-  - --enforce-eager
   params:
   - name: --enable-mamba-cache-stochastic-rounding
     test_value: true
+    deps:
+      --mamba-ssm-cache-dtype: float16
   - name: --no-enable-mamba-cache-stochastic-rounding
     test_value: true
 ParallelConfig:
@@ -246,20 +241,7 @@ ParallelConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
-  - --enforce-eager
   params:
-  - name: --data-parallel-external-lb
-    test_value: true
-  - name: --no-data-parallel-external-lb
-    test_value: true
-  - name: --data-parallel-hybrid-lb
-    test_value: true
-  - name: --no-data-parallel-hybrid-lb
-    test_value: true
-  - name: --data-parallel-multi-port-external-lb
-    test_value: true
-  - name: --data-parallel-multi-port-external-lb
-    test_value: false
   - name: --disable-custom-all-reduce
     test_value: true
   - name: --no-disable-custom-all-reduce
@@ -283,10 +265,6 @@ ParallelConfig:
   - name: --enable-eplb
     test_value: true
   - name: --no-enable-eplb
-    test_value: true
-  - name: --enable-expert-parallel
-    test_value: true
-  - name: --no-enable-expert-parallel
     test_value: true
   - name: --eplb-config
     subfields:
@@ -319,7 +297,6 @@ CacheConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
-  - --enforce-eager
   params:
   - name: --calculate-kv-scales
     test_value: true
@@ -346,7 +323,6 @@ MultiModalConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
-  - --enforce-eager
   params:
   - name: --enable-mm-embeds
     test_value: true
@@ -381,7 +357,6 @@ LoRAConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
-  - --enforce-eager
   params:
   - name: --enable-lora
     test_value: true
@@ -416,7 +391,6 @@ ObservabilityConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
-  - --enforce-eager
   params:
   - name: --cudagraph-metrics
     test_value: true
@@ -451,7 +425,6 @@ SchedulerConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
-  - --enforce-eager
   params:
   - name: --async-scheduling
     test_value: true
@@ -482,7 +455,6 @@ KernelConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
-  - --enforce-eager
   params:
   - name: --enable-flashinfer-autotune
     test_value: true
@@ -501,7 +473,6 @@ VllmConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
-  - --enforce-eager
   params:
   - name: --attention-config
     subfields:
@@ -685,14 +656,155 @@ VllmConfig:
     subfields:
     - name: disable_any_whitespace
       test_value: true
+      deps:
+        backend: xgrammar
     - name: disable_any_whitespace
       test_value: false
+      deps:
+        backend: xgrammar
     - name: disable_additional_properties
       test_value: true
+      deps:
+        backend: guidance
     - name: disable_additional_properties
       test_value: false
+      deps:
+        backend: guidance
     - name: enable_in_reasoning
       test_value: true
     - name: enable_in_reasoning
       test_value: false
-
+Exception:
+  baseline:
+  - /home/weights/Qwen3-30B-A3B-w8a8/
+  - --data-parallel-size 1
+  - --tensor-parallel-size 4
+  - --seed 1024
+  - --served-model-name qwen3-next
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.8
+  - --no-disable-hybrid-kv-cache-manager
+  params:
+  - name: --enable-return-routed-experts
+    test_value: true
+  - name: --no-enable-return-routed-experts
+    test_value: true
+  - name: --skip-tokenizer-init
+    test_value: true
+  - name: --no-allow-deprecated-quantization
+    test_value: true
+  - name: --tokens-only
+    test_value: true
+  - name: --enable-log-outputs
+    test_value: true
+    deps:
+      --enable-log-requests: true
+  - name: --enable-auto-tool-choice
+    test_value: true
+    deps:
+      --tool-call-parser: qwen3_coder
+  - name: --grpc
+    test_value: true
+  - name: --enable-expert-parallel
+    test_value: true
+  - name: --no-enable-expert-parallel
+    test_value: true
+  - name: --calculate-kv-scales
+    test_value: true
+  - name: --mm-encoder-only
+    test_value: true
+  - name: --data-parallel-external-lb
+    test_value: true
+    deps:
+      --data-parallel-rank: 0
+  - name: --data-parallel-hybrid-lb
+    test_value: true
+    deps:
+      --data-parallel-size-local: 1
+      --data-parallel-start-rank: 0
+  - name: --compilation-config
+    subfields:
+    - name: cudagraph_mm_encoder
+      test_value: true
+    - name: cudagraph_mm_encoder
+      test_value: false
+    - name: cudagraph_copy_inputs
+      test_value: true
+    - name: cudagraph_copy_inputs
+      test_value: false
+    - name: use_inductor_graph_partition
+      test_value: true
+    - name: use_inductor_graph_partition
+      test_value: false
+    - name: pass_config.fuse_gemm_comms
+      test_value: true
+    - name: pass_config.fuse_gemm_comms
+      test_value: false
+    - name: pass_config.fuse_allreduce_rms
+      test_value: true
+    - name: pass_config.fuse_allreduce_rms
+      test_value: false
+    - name: dynamic_shapes_config.evaluate_guards
+      test_value: true
+    - name: dynamic_shapes_config.evaluate_guards
+      test_value: false
+  - name: --kv-transfer-config
+    subfields:
+    - name: enable_permute_local_kv
+      test_value: true
+    - name: enable_permute_local_kv
+      test_value: false
+  - name: --profiler-config
+    subfields:
+    - name: ignore_frontend
+      test_value: true
+    - name: ignore_frontend
+      test_value: false
+Lora:
+  baseline:
+  - /home/weights/Qwen3-30B-A3B-w8a8/
+  - --data-parallel-size 1
+  - --tensor-parallel-size 4
+  - --seed 1024
+  - --served-model-name qwen3-next
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.8
+  - --no-disable-hybrid-kv-cache-manager
+  params:
+  - name: --enable-lora
+    test_value: true
+# SPEC:
+#   baseline:
+#   - /home/weights/Qwen3-30B-A3B-w8a8/
+#   - --data-parallel-size 1
+#   - --tensor-parallel-size 4
+#   - --seed 1024
+#   - --served-model-name qwen3-next
+#   - --max-num-seqs 28
+#   - --max-model-len 16384
+#   - --max-num-batched-tokens 16384
+#   - --trust-remote-code
+#   - --gpu-memory-utilization 0.8
+#   - --no-disable-hybrid-kv-cache-manager
+#   - --speculative-config '{"num_speculative_tokens": 2, "method":"deepseek_mtp", "disable_padded_drafter_batch": "False"}'
+#   params:
+#   - name: --speculative-config
+#     subfields:
+#     - name: disable_padded_drafter_batch
+#       test_value: true
+#     - name: disable_padded_drafter_batch
+#       test_value: false
+#     - name: use_local_argmax_reduction
+#       test_value: true
+#     - name: use_local_argmax_reduction
+#       test_value: false
+#     - name: parallel_drafting
+#       test_value: true
+#     - name: parallel_drafting
+#       test_value: false

@@ -159,7 +159,7 @@ GITHUB_TOKEN=ghp_... python3 .agents/skills/vllm-api-compat/scripts/daily_check.
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--host` | — | Host passed to `vllm serve` |
+| `--host` | `localhost` | Host passed to `vllm serve` |
 | `--port` | auto | Override port; otherwise a free port is chosen per test |
 | `--nodes` | required | `all` or `single` |
 | `--section` | — | Section name (required when `--nodes single`) |
@@ -171,20 +171,29 @@ GITHUB_TOKEN=ghp_... python3 .agents/skills/vllm-api-compat/scripts/daily_check.
 | `--bench` | off | Run pressure test after each PASS |
 | `--bench-num-prompts` | 10 | Number of prompts for bench |
 | `--bench-concurrency` | 4 | Max concurrency for bench |
+| `--accuracy` | off | Run accuracy check: compare outputs against baseline with temperature=0 |
 
 ## Log layout
 
 ```
 <log-path>/           (default: ./server-api-log)
+├── accuracy/         # accuracy check outputs (when --accuracy enabled)
+│   └── <section>/
+│       ├── baseline.json
+│       └── <param_key>.json
 ├── bench/            # pressure test output
-│   └── bench_latest.log
-├── results/          # test summary
-│   └── summary_latest.json
-└── serve/            # vllm process stdout per test case
-    └── <section>_<param>_<test_value>_stdout.log
+│   └── <section>/
+│       └── <param_key>.log
+├── results/          # per-param results + aggregated summary
+│   ├── <section>/
+│   │   └── <param_key>.json
+│   └── summary.json  # appends each run (array of summaries)
+└── serve/            # vllm process stdout+stderr per test case
+    └── <section>/
+        └── <param_key>_stdout.log
 ```
 
-Logs are overwritten on each run (no timestamps in filenames).
+Where `<param_key>` is like `disable_log_stats_true` or `structured_outputs_config__disable_any_whitespace_true`.
 
 ## Local state
 
@@ -201,18 +210,33 @@ Logs are overwritten on each run (no timestamps in filenames).
 
 1. Load `references/params_simple.yaml`.
 2. For each section: read `baseline` (the root `vllm serve` command template).
-3. Per param entry: append the flag to baseline, start `vllm serve`, poll `/health`, send `/v1/completions`.
-4. If `--bench`: run `vllm bench serve` on the live service, attach metrics to result.
-5. Stop service, wait for NPU HBM and HCCL ports to release.
-6. Write `results/summary_latest.json` and print final JSON to stdout.
+3. If `--accuracy`: collect baseline outputs once per section (cached in `accuracy/<section>/baseline.json`).
+4. Per param entry:
+   - Build CLI args from test_value (bool → flag presence; json_config → JSON string).
+   - Kill existing vllm processes, wait for NPU memory free.
+   - Start `vllm serve` with baseline + param args, redirect stdout+stderr to `serve/<section>/<param_key>_stdout.log`.
+   - Poll `/health` every 2s until 200 or timeout.
+   - Send `/v1/completions` with minimal payload, check for valid JSON with `choices`.
+   - If `--bench`: run `vllm bench serve`, parse metrics, attach to result.
+   - If `--accuracy`: send deterministic requests (temperature=0), compare outputs with baseline.
+   - Write per-param result to `results/<section>/<param_key>.json`.
+5. Stop service (SIGTERM → 10s → SIGKILL), wait for descendants and NPU memory release.
+6. Append run summary to `results/summary.json` (array) and print final JSON to stdout.
 
 ### daily_check.py
 
-1. Poll `vllm-project/vllm` GitHub PRs for changes to serve CLI or config files.
-2. Auto-detect new parameters from PR diffs.
-3. Add new params to `params.yaml`.
-4. Run `cli.py --nodes all`.
-5. For FAILs: attempt auto-fix, re-test, invoke `auto-commit-pr` if fixes applied.
+1. Load state from `.vaws-local/vllm-api-compat/daily/state.json` (last_pr_number, last_run).
+2. Fetch recent merged PRs from `vllm-project/vllm` via GitHub API.
+3. Scan PR diffs for `add_argument()` calls in `vllm/entrypoints/cli/serve.py` or `vllm/config.py`.
+4. Infer param type (bool_flag, Enum, int, float, str) and test_value from diff context.
+5. Infer section (ModelConfig, ParallelConfig, etc.) from surrounding diff.
+6. Add new params to `.vaws-local/vllm-api-compat/params.yaml`.
+7. Run `cli.py --model <model> --nodes all`.
+8. For FAIL results with Ascend-specific errors (NotImplementedError, AscendError, npu, torch_npu, cann):
+   - Write fix stub to `.vaws-local/vllm-api-compat/daily/fixes/<section>_<param>.md`.
+   - Re-run single section to check if fix worked.
+9. If fix stubs exist, invoke `auto-commit-pr` skill to commit and open PR.
+10. Update state with highest PR number seen and current timestamp.
 
 ## Reference files
 
