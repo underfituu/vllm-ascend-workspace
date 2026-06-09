@@ -47,7 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Single param to test, e.g. --param=--disable-log-stats or "
                         "--param=--structured-outputs-config.disable_any_whitespace")
     p.add_argument("--test-value", default=None, help="Filter by test_value, e.g. true or false")
-    p.add_argument("--timeout", type=int, default=180)
+    p.add_argument("--timeout", type=int, default=400)
     p.add_argument("--params-yaml", default=None, help="Override path to params_simple.yaml")
     p.add_argument("--log-path", default="./server-api-log", help="Root log directory")
     p.add_argument("--bench", action="store_true", help="Run pressure test after each PASS")

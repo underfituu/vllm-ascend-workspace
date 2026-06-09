@@ -6,11 +6,11 @@ meta:
     subfields: 'JSON key: true + false'
 GlobalOptions:
   baseline:
-  - /home/weights/Qwen3.5-0.8B/
+  - /home/weights/Qwen3-0.6B
   - --data-parallel-size 2
   - --tensor-parallel-size 2
   - --seed 1024
-  - --served-model-name qwen3-next
+  - --served-model-name qwen
   - --max-num-seqs 28
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
@@ -44,11 +44,11 @@ GlobalOptions:
     test_value: false
 Frontend:
   baseline:
-  - /home/weights/Qwen3.5-0.8B/
+  - /home/weights/Qwen3-0.6B
   - --data-parallel-size 2
   - --tensor-parallel-size 2
   - --seed 1024
-  - --served-model-name qwen3-next
+  - --served-model-name qwen
   - --max-num-seqs 28
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
@@ -138,11 +138,11 @@ Frontend:
     test_value: true
 ModelConfig:
   baseline:
-  - /home/weights/Qwen3.5-0.8B/
+  - /home/weights/Qwen3-0.6B
   - --data-parallel-size 2
   - --tensor-parallel-size 2
   - --seed 1024
-  - --served-model-name qwen3-next
+  - --served-model-name qwen
   - --max-num-seqs 28
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
@@ -192,11 +192,11 @@ ModelConfig:
     test_value: true
 LoadConfig:
   baseline:
-  - /home/weights/Qwen3.5-0.8B/
+  - /home/weights/Qwen3-0.6B
   - --data-parallel-size 2
   - --tensor-parallel-size 2
   - --seed 1024
-  - --served-model-name qwen3-next
+  - --served-model-name qwen
   - --max-num-seqs 28
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
@@ -210,11 +210,11 @@ LoadConfig:
     test_value: true
 MambaConfig:
   baseline:
-  - /home/weights/Qwen3.5-0.8B/
+  - /home/weights/Qwen3-0.6B
   - --data-parallel-size 2
   - --tensor-parallel-size 2
   - --seed 1024
-  - --served-model-name qwen3-next
+  - --served-model-name qwen
   - --max-num-seqs 28
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
@@ -230,11 +230,11 @@ MambaConfig:
     test_value: true
 ParallelConfig:
   baseline:
-  - /home/weights/Qwen3.5-0.8B/
+  - /home/weights/Qwen3-0.6B
   - --data-parallel-size 2
   - --tensor-parallel-size 2
   - --seed 1024
-  - --served-model-name qwen3-next
+  - --served-model-name qwen
   - --max-num-seqs 28
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
@@ -286,11 +286,11 @@ ParallelConfig:
     test_value: true
 CacheConfig:
   baseline:
-  - /home/weights/Qwen3.5-0.8B/
+  - /home/weights/Qwen3-0.6B
   - --data-parallel-size 2
   - --tensor-parallel-size 2
   - --seed 1024
-  - --served-model-name qwen3-next
+  - --served-model-name qwen
   - --max-num-seqs 28
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
@@ -312,11 +312,11 @@ CacheConfig:
     test_value: true
 MultiModalConfig:
   baseline:
-  - /home/weights/Qwen3.5-0.8B/
+  - /home/weights/Qwen3-30B-A3B-w8a8/
   - --data-parallel-size 2
   - --tensor-parallel-size 2
   - --seed 1024
-  - --served-model-name qwen3-next
+  - --served-model-name qwen
   - --max-num-seqs 28
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
@@ -346,11 +346,11 @@ MultiModalConfig:
     test_value: true
 LoRAConfig:
   baseline:
-  - /home/weights/Qwen3.5-0.8B/
+  - /home/weights/Qwen3-0.6B
   - --data-parallel-size 2
   - --tensor-parallel-size 2
   - --seed 1024
-  - --served-model-name qwen3-next
+  - --served-model-name qwen
   - --max-num-seqs 28
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
@@ -380,11 +380,11 @@ LoRAConfig:
     test_value: true
 ObservabilityConfig:
   baseline:
-  - /home/weights/Qwen3.5-0.8B/
+  - /home/weights/Qwen3-0.6B
   - --data-parallel-size 2
   - --tensor-parallel-size 2
   - --seed 1024
-  - --served-model-name qwen3-next
+  - --served-model-name qwen
   - --max-num-seqs 28
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
@@ -414,11 +414,11 @@ ObservabilityConfig:
     test_value: true
 SchedulerConfig:
   baseline:
-  - /home/weights/Qwen3.5-0.8B/
+  - /home/weights/Qwen3-0.6B
   - --data-parallel-size 2
   - --tensor-parallel-size 2
   - --seed 1024
-  - --served-model-name qwen3-next
+  - --served-model-name qwen
   - --max-num-seqs 28
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
@@ -444,11 +444,11 @@ SchedulerConfig:
     test_value: true
 KernelConfig:
   baseline:
-  - /home/weights/Qwen3.5-0.8B/
+  - /home/weights/Qwen3-0.6B
   - --data-parallel-size 2
   - --tensor-parallel-size 2
   - --seed 1024
-  - --served-model-name qwen3-next
+  - --served-model-name qwen
   - --max-num-seqs 28
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
@@ -462,11 +462,11 @@ KernelConfig:
     test_value: true
 VllmConfig:
   baseline:
-  - /home/weights/Qwen3.5-0.8B/
+  - /home/weights/Qwen3-0.6B
   - --data-parallel-size 2
   - --tensor-parallel-size 2
   - --seed 1024
-  - --served-model-name qwen3-next
+  - --served-model-name qwen
   - --max-num-seqs 28
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
@@ -680,13 +680,12 @@ Exception:
   - --data-parallel-size 1
   - --tensor-parallel-size 4
   - --seed 1024
-  - --served-model-name qwen3-next
+  - --served-model-name qwen
   - --max-num-seqs 28
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
   - --trust-remote-code
-  - --gpu-memory-utilization 0.8
-  - --no-disable-hybrid-kv-cache-manager
+  - --gpu-memory-utilization 0.7
   params:
   - name: --enable-return-routed-experts
     test_value: true
@@ -769,13 +768,12 @@ Lora:
   - --data-parallel-size 1
   - --tensor-parallel-size 4
   - --seed 1024
-  - --served-model-name qwen3-next
+  - --served-model-name qwen
   - --max-num-seqs 28
   - --max-model-len 16384
   - --max-num-batched-tokens 16384
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
-  - --no-disable-hybrid-kv-cache-manager
   params:
   - name: --enable-lora
     test_value: true
@@ -785,7 +783,7 @@ Lora:
 #   - --data-parallel-size 1
 #   - --tensor-parallel-size 4
 #   - --seed 1024
-#   - --served-model-name qwen3-next
+#   - --served-model-name qwen
 #   - --max-num-seqs 28
 #   - --max-model-len 16384
 #   - --max-num-batched-tokens 16384
