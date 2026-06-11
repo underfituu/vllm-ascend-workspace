@@ -34,12 +34,6 @@ GlobalOptions:
     test_value: true
   - name: --no-fail-on-environ-validation
     test_value: true
-  - name: --grpc
-    test_value: true
-  - name: --grpc
-    test_value: false
-  - name: --headless
-    test_value: true
   - name: --headless
     test_value: false
 Frontend:
@@ -130,6 +124,7 @@ Frontend:
     test_value: true
   - name: --tokens-only
     test_value: true
+    request_type: tokens_only
   - name: --no-tokens-only
     test_value: true
   - name: --trust-request-chat-template
@@ -326,27 +321,37 @@ MultiModalConfig:
   params:
   - name: --enable-mm-embeds
     test_value: true
+    request_type: multimodal_image
   - name: --no-enable-mm-embeds
     test_value: true
+    request_type: multimodal_image
   - name: --interleave-mm-strings
     test_value: true
+    request_type: multimodal_image
   - name: --no-interleave-mm-strings
     test_value: true
+    request_type: multimodal_image
   - name: --language-model-only
     test_value: true
+    request_type: multimodal_image
   - name: --no-language-model-only
     test_value: true
+    request_type: multimodal_image
   - name: --mm-encoder-only
     test_value: true
+    request_type: multimodal_image
   - name: --no-mm-encoder-only
     test_value: true
+    request_type: multimodal_image
   - name: --skip-mm-profiling
     test_value: true
+    request_type: multimodal_image
   - name: --no-skip-mm-profiling
     test_value: true
+    request_type: multimodal_image
 LoRAConfig:
   baseline:
-  - /home/weights/Qwen3-0.6B
+  - /home/weights/Qwen3.5-4B
   - --data-parallel-size 2
   - --tensor-parallel-size 2
   - --seed 1024
@@ -357,6 +362,8 @@ LoRAConfig:
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
+  - --enforce-eager
+  - '--lora-modules {"name": "sql-lora", "path": "/root/.cache/modelscope/hub/models/vllm-ascend/qwen35-4b-text-only-sql-lora", "base_model_name": "/home/weights/Qwen3.5-4B"}'
   params:
   - name: --enable-lora
     test_value: true
@@ -530,66 +537,6 @@ VllmConfig:
       test_value: true
     - name: fast_moe_cold_start
       test_value: false
-    - name: pass_config.fuse_norm_quant
-      test_value: true
-    - name: pass_config.fuse_norm_quant
-      test_value: false
-    - name: pass_config.fuse_act_quant
-      test_value: true
-    - name: pass_config.fuse_act_quant
-      test_value: false
-    - name: pass_config.fuse_attn_quant
-      test_value: true
-    - name: pass_config.fuse_attn_quant
-      test_value: false
-    - name: pass_config.eliminate_noops
-      test_value: true
-    - name: pass_config.eliminate_noops
-      test_value: false
-    - name: pass_config.enable_sp
-      test_value: true
-    - name: pass_config.enable_sp
-      test_value: false
-    - name: pass_config.fuse_gemm_comms
-      test_value: true
-    - name: pass_config.fuse_gemm_comms
-      test_value: false
-    - name: pass_config.fuse_allreduce_rms
-      test_value: true
-    - name: pass_config.fuse_allreduce_rms
-      test_value: false
-    - name: pass_config.fuse_minimax_qk_norm
-      test_value: true
-    - name: pass_config.fuse_minimax_qk_norm
-      test_value: false
-    - name: pass_config.enable_qk_norm_rope_fusion
-      test_value: true
-    - name: pass_config.enable_qk_norm_rope_fusion
-      test_value: false
-    - name: pass_config.fuse_rope_kvcache_cat_mla
-      test_value: true
-    - name: pass_config.fuse_rope_kvcache_cat_mla
-      test_value: false
-    - name: pass_config.fuse_act_padding
-      test_value: true
-    - name: pass_config.fuse_act_padding
-      test_value: false
-    - name: pass_config.fuse_mla_dual_rms_norm
-      test_value: true
-    - name: pass_config.fuse_mla_dual_rms_norm
-      test_value: false
-    - name: pass_config.fuse_rope_kvcache
-      test_value: true
-    - name: pass_config.fuse_rope_kvcache
-      test_value: false
-    - name: dynamic_shapes_config.evaluate_guards
-      test_value: true
-    - name: dynamic_shapes_config.evaluate_guards
-      test_value: false
-    - name: dynamic_shapes_config.assume_32_bit_indexing
-      test_value: true
-    - name: dynamic_shapes_config.assume_32_bit_indexing
-      test_value: false
   - name: --kernel-config
     subfields:
     - name: enable_flashinfer_autotune
@@ -601,12 +548,6 @@ VllmConfig:
     - name: enable_kv_cache_events
       test_value: true
     - name: enable_kv_cache_events
-      test_value: false
-  - name: --kv-transfer-config
-    subfields:
-    - name: enable_permute_local_kv
-      test_value: true
-    - name: enable_permute_local_kv
       test_value: false
   - name: --profiler-config
     subfields:
@@ -676,7 +617,7 @@ VllmConfig:
       test_value: false
 Exception:
   baseline:
-  - /home/weights/Qwen3-30B-A3B-w8a8/
+  - /home/weights/Qwen3-0.6B/
   - --data-parallel-size 1
   - --tensor-parallel-size 4
   - --seed 1024
@@ -693,10 +634,12 @@ Exception:
     test_value: true
   - name: --skip-tokenizer-init
     test_value: true
+    request_type: tokens_only
   - name: --no-allow-deprecated-quantization
     test_value: true
   - name: --tokens-only
     test_value: true
+    request_type: tokens_only
   - name: --enable-log-outputs
     test_value: true
     deps:
@@ -715,15 +658,6 @@ Exception:
     test_value: true
   - name: --mm-encoder-only
     test_value: true
-  - name: --data-parallel-external-lb
-    test_value: true
-    deps:
-      --data-parallel-rank: 0
-  - name: --data-parallel-hybrid-lb
-    test_value: true
-    deps:
-      --data-parallel-size-local: 1
-      --data-parallel-start-rank: 0
   - name: --compilation-config
     subfields:
     - name: cudagraph_mm_encoder
@@ -737,14 +671,6 @@ Exception:
     - name: use_inductor_graph_partition
       test_value: true
     - name: use_inductor_graph_partition
-      test_value: false
-    - name: pass_config.fuse_gemm_comms
-      test_value: true
-    - name: pass_config.fuse_gemm_comms
-      test_value: false
-    - name: pass_config.fuse_allreduce_rms
-      test_value: true
-    - name: pass_config.fuse_allreduce_rms
       test_value: false
     - name: dynamic_shapes_config.evaluate_guards
       test_value: true
@@ -762,9 +688,9 @@ Exception:
       test_value: true
     - name: ignore_frontend
       test_value: false
-Lora:
+SPEC:
   baseline:
-  - /home/weights/Qwen3-30B-A3B-w8a8/
+  - /home/model_weights/Qwen3-32B-W8A8/
   - --data-parallel-size 1
   - --tensor-parallel-size 4
   - --seed 1024
@@ -774,35 +700,84 @@ Lora:
   - --max-num-batched-tokens 16384
   - --trust-remote-code
   - --gpu-memory-utilization 0.8
+  - --enforce-eager
   params:
-  - name: --enable-lora
+  - name: --speculative-config
+    subfields:
+    - name: disable_padded_drafter_batch
+      test_value: true
+      deps:
+        num_speculative_tokens: 3
+        method: eagle3
+        model: /home/model_weights/EAGLE3-Qwen3-32B/
+    - name: disable_padded_drafter_batch
+      test_value: false
+      deps:
+        num_speculative_tokens: 3
+        method: eagle3
+        model: /home/model_weights/EAGLE3-Qwen3-32B/
+    - name: use_local_argmax_reduction
+      test_value: true
+      deps:
+        num_speculative_tokens: 3
+        method: eagle3
+        model: /home/model_weights/EAGLE3-Qwen3-32B/
+    - name: use_local_argmax_reduction
+      test_value: false
+      deps:
+        num_speculative_tokens: 3
+        method: eagle3
+        model: /home/model_weights/EAGLE3-Qwen3-32B/
+    - name: parallel_drafting
+      test_value: true
+      deps:
+        num_speculative_tokens: 3
+        method: eagle3
+        model: /home/model_weights/EAGLE3-Qwen3-32B/
+    - name: parallel_drafting
+      test_value: false
+      deps:
+        num_speculative_tokens: 3
+        method: eagle3
+        model: /home/model_weights/EAGLE3-Qwen3-32B/
+DataParallelLB:
+  baseline:
+  - /home/weights/Qwen3-30B-A3B-w8a8/
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.8
+  params:
+  - name: --data-parallel-external-lb
     test_value: true
-# SPEC:
-#   baseline:
-#   - /home/weights/Qwen3-30B-A3B-w8a8/
-#   - --data-parallel-size 1
-#   - --tensor-parallel-size 4
-#   - --seed 1024
-#   - --served-model-name qwen
-#   - --max-num-seqs 28
-#   - --max-model-len 16384
-#   - --max-num-batched-tokens 16384
-#   - --trust-remote-code
-#   - --gpu-memory-utilization 0.8
-#   - --no-disable-hybrid-kv-cache-manager
-#   - --speculative-config '{"num_speculative_tokens": 2, "method":"deepseek_mtp", "disable_padded_drafter_batch": "False"}'
-#   params:
-#   - name: --speculative-config
-#     subfields:
-#     - name: disable_padded_drafter_batch
-#       test_value: true
-#     - name: disable_padded_drafter_batch
-#       test_value: false
-#     - name: use_local_argmax_reduction
-#       test_value: true
-#     - name: use_local_argmax_reduction
-#       test_value: false
-#     - name: parallel_drafting
-#       test_value: true
-#     - name: parallel_drafting
-#       test_value: false
+    env:
+      ASCEND_RT_VISIBLE_DEVICES: "4,5"
+    deps:
+      --data-parallel-rank: 0
+      --data-parallel-rpc-port: 29550
+    peers:
+    - deps:
+        --data-parallel-rank: 1
+        --data-parallel-rpc-port: 29550
+        --data-parallel-address: 127.0.0.1
+      env:
+        ASCEND_RT_VISIBLE_DEVICES: "6,7"
+  - name: --data-parallel-hybrid-lb
+    test_value: true
+    env:
+      ASCEND_RT_VISIBLE_DEVICES: "4,5,6,7"
+    deps:
+      --data-parallel-size-local: 2
+      --data-parallel-start-rank: 0
+  - name: --data-parallel-multi-port-external-lb
+    test_value: true
+    env:
+      ASCEND_RT_VISIBLE_DEVICES: "4,5,6,7"
+    deps:
+      --data-parallel-rpc-port: 25678
+      --data-parallel-size-local: 2

@@ -188,12 +188,9 @@ def start_vllm_serve(
     port: int,
     log_prefix: str = "serve",
     use_baseline_args: bool = True,
+    env: dict | None = None,
 ) -> subprocess.Popen:
-    """Launch a local vllm serve process.
-
-    Returns the Popen handle. stdout is written to a log file under
-    LOG_DIR/serve/ so the caller can inspect it on failure.
-    """
+    """Launch a local vllm serve process."""
     _kill_existing_vllm()
     log_stdout = LOG_DIR / "serve" / f"{log_prefix}_stdout.log"
     log_stdout.parent.mkdir(parents=True, exist_ok=True)
@@ -204,18 +201,58 @@ def start_vllm_serve(
     emit_progress("serve_start", f"starting: {' '.join(cmd)}")
 
     f_out = open(log_stdout, "w", encoding="utf-8")
-
+    proc_env = os.environ.copy()
+    if env:
+        proc_env.update({k: str(v) for k, v in env.items()})
     proc = subprocess.Popen(
         cmd,
         stdout=f_out,
         stderr=f_out,
         process_group=0,
+        env=proc_env,
     )
 
     proc._log_stdout = f_out  # type: ignore[attr-defined]
     proc._log_stdout_path = log_stdout  # type: ignore[attr-defined]
 
     return proc
+
+
+def start_vllm_serve_peers(
+    model: str,
+    baseline_args: list[str],
+    peer_entries: list[dict],
+    log_prefix: str,
+) -> tuple[list[subprocess.Popen], list[int]]:
+    """Start peer vllm serve instances without killing existing processes.
+
+    Each peer shares the same model and baseline args, differing only in their
+    deps (e.g. --data-parallel-rank). Returns (procs, ports).
+    """
+    procs, ports = [], []
+    for i, peer in enumerate(peer_entries):
+        deps = peer.get("deps", {})
+        peer_extra = []
+        for dk, dv in deps.items():
+            if isinstance(dv, bool):
+                if dv:
+                    peer_extra.append(dk)
+            else:
+                peer_extra.extend([dk, str(dv)])
+        port = find_free_port()
+        log_stdout = LOG_DIR / "serve" / f"{log_prefix}_peer{i}_stdout.log"
+        log_stdout.parent.mkdir(parents=True, exist_ok=True)
+        cmd = ["vllm", "serve", model, "--port", str(port)] + baseline_args + peer_extra
+        emit_progress("serve_start", f"starting peer{i}: {' '.join(cmd)}")
+        f_out = open(log_stdout, "w", encoding="utf-8")
+        peer_env = os.environ.copy()
+        peer_env.update({k: str(v) for k, v in peer.get("env", {}).items()})
+        proc = subprocess.Popen(cmd, stdout=f_out, stderr=f_out, process_group=0, env=peer_env)
+        proc._log_stdout = f_out  # type: ignore[attr-defined]
+        proc._log_stdout_path = log_stdout  # type: ignore[attr-defined]
+        procs.append(proc)
+        ports.append(port)
+    return procs, ports
 
 
 def wait_for_ready(port: int, timeout: int = 120, host: str = "127.0.0.1") -> bool:
@@ -265,6 +302,61 @@ def send_completion_request(model: str, port: int, host: str = "127.0.0.1") -> t
         if "choices" in data:
             return True, ""
         return False, f"response missing 'choices': {body[:200]}"
+    except HTTPError as e:
+        return False, f"HTTP {e.code}: {e.reason}"
+    except (URLError, OSError, ConnectionError) as e:
+        return False, f"connection error: {e}"
+    except json.JSONDecodeError:
+        return False, "response is not valid JSON"
+
+
+def send_tokens_only_request(model: str, port: int, host: str = "127.0.0.1") -> tuple[bool, str]:
+    """POST a completion request using token IDs instead of text."""
+    from urllib.request import Request, urlopen
+    from urllib.error import URLError, HTTPError
+
+    url = f"http://{host}:{port}/v1/completions"
+    payload = json.dumps({"model": model, "prompt": [9906], "max_tokens": 1}).encode("utf-8")
+    req = Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        resp = urlopen(req, timeout=30)
+        data = json.loads(resp.read().decode("utf-8"))
+        if "choices" in data:
+            return True, ""
+        return False, f"response missing 'choices': {resp.read()[:200]}"
+    except HTTPError as e:
+        return False, f"HTTP {e.code}: {e.reason}"
+    except (URLError, OSError, ConnectionError) as e:
+        return False, f"connection error: {e}"
+    except json.JSONDecodeError:
+        return False, "response is not valid JSON"
+
+
+# 1x1 red pixel PNG, base64-encoded
+_MM_IMAGE_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg=="
+
+
+def send_multimodal_image_request(model: str, port: int, host: str = "127.0.0.1") -> tuple[bool, str]:
+    """POST a chat completions request with an inline base64 image."""
+    from urllib.request import Request, urlopen
+    from urllib.error import URLError, HTTPError
+
+    url = f"http://{host}:{port}/v1/chat/completions"
+    payload = json.dumps({
+        "model": model,
+        "max_tokens": 1,
+        "messages": [{"role": "user", "content": [
+            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{_MM_IMAGE_B64}"}},
+            {"type": "text", "text": "What is this?"},
+        ]}],
+    }).encode("utf-8")
+    req = Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        resp = urlopen(req, timeout=30)
+        data = json.loads(resp.read().decode("utf-8"))
+        if "choices" in data:
+            return True, ""
+        return False, f"response missing 'choices': {str(data)[:200]}"
     except HTTPError as e:
         return False, f"HTTP {e.code}: {e.reason}"
     except (URLError, OSError, ConnectionError) as e:

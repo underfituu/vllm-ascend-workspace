@@ -227,6 +227,7 @@ def test_param(
     bench_concurrency: int = 4,
     accuracy: bool = False,
     baseline_outputs: list[str] | None = None,
+    section_env: dict | None = None,
 ) -> dict:
     full_name = _param_full_name(param_entry)
     pkey = _param_key(param_entry)
@@ -237,18 +238,36 @@ def test_param(
     emit_progress("test", f"testing {_param_display(section_name, param_entry)}", param=full_name, port=port)
 
     proc = None
+    peer_procs = []
+    peer_ports = []
     try:
+        merged_env = {**(section_env or {}), **(param_entry.get("env") or {})} or None
         proc = start_vllm_serve(
             model, baseline_args + extra, port,
             log_prefix=f"{section_name}/{pkey}", use_baseline_args=False,
+            env=merged_env,
         )
+        if param_entry.get("peers"):
+            peer_procs, peer_ports = _common.start_vllm_serve_peers(
+                model, baseline_args, param_entry["peers"], log_prefix=f"{section_name}/{pkey}"
+            )
         if not wait_for_ready(port, timeout, host=host or "127.0.0.1"):
             stdout_log, _ = read_serve_logs(proc)
             return {"section": section_name, "param": full_name, "test_value": tv,
                     "status": "FAIL", "notes": f"health timeout: {stdout_log[-500:]}"}
+        for i, pp_port in enumerate(peer_ports if param_entry.get("peers") else []):
+            if not wait_for_ready(pp_port, timeout, host=host or "127.0.0.1"):
+                return {"section": section_name, "param": full_name, "test_value": tv,
+                        "status": "FAIL", "notes": f"peer{i} health timeout"}
 
         served_model = _get_served_model(baseline)
-        ok, err = send_completion_request(served_model, port, host=host or "127.0.0.1")
+        _rt = param_entry.get("request_type")
+        if _rt == "tokens_only":
+            ok, err = _common.send_tokens_only_request(served_model, port, host=host or "127.0.0.1")
+        elif _rt == "multimodal_image":
+            ok, err = _common.send_multimodal_image_request(served_model, port, host=host or "127.0.0.1")
+        else:
+            ok, err = send_completion_request(served_model, port, host=host or "127.0.0.1")
         result = {"section": section_name, "param": full_name, "test_value": tv,
                   "status": "PASS" if ok else "FAIL", "notes": "" if ok else err}
 
@@ -286,6 +305,8 @@ def test_param(
         return {"section": section_name, "param": full_name, "test_value": tv,
                 "status": "FAIL", "notes": f"exception: {e}"}
     finally:
+        for pp in peer_procs:
+            stop_vllm_serve(pp)
         if proc is not None:
             stop_vllm_serve(proc)
 
@@ -379,7 +400,8 @@ def main() -> None:
                 port = args.port or find_free_port()
                 result = test_param(sname, entry, baseline, args.host, port, args.timeout,
                                     bench=args.bench, bench_num_prompts=args.bench_num_prompts,
-                                    bench_concurrency=args.bench_concurrency)
+                                    bench_concurrency=args.bench_concurrency,
+                                    section_env=sec.get("env"))
                 results.append(result)
                 emit_progress("result", f"{_param_display(sname, entry)}: {result['status']}")
                 _upsert_summary(summary_file, result)
@@ -432,7 +454,8 @@ def main() -> None:
             result = test_param(sname, entry, baseline, args.host, port, args.timeout,
                                 bench=args.bench, bench_num_prompts=args.bench_num_prompts,
                                 bench_concurrency=args.bench_concurrency,
-                                accuracy=args.accuracy, baseline_outputs=baseline_outputs)
+                                accuracy=args.accuracy, baseline_outputs=baseline_outputs,
+                                section_env=sec.get("env"))
             results.append(result)
             emit_progress("result", f"{_param_display(sname, entry)}: {result['status']}")
 
