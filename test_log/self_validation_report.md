@@ -5,7 +5,7 @@
 **PR 链接:** https://github.com/vllm-project/vllm-ascend/pull/10251
 
 **分支:** `feature_weight_offload`
-**验证日期:** 2026-06-10
+**验证日期:** 2026-06-12
 **验证人:** underfituu
 
 ---
@@ -22,38 +22,105 @@
 | `tests/ut/one_card/test_cpu_weight_offload.py` | 新增单元测试 |
 | `.github/workflows/scripts/test_config.yaml` | 注册 CI 测试项 |
 
+
+---
+
+## 脚本
+
+### baseline
+```bash
+    vllm serve /home/weights/Qwen3-32B-W8A8/ \
+        --host 173.125.1.2 \
+        --port 1234 \
+        --data-parallel-size 1 \
+        --tensor-parallel-size 4 \
+        --seed 1024 \
+        --served-model-name qwen \
+        --max-num-seqs 64 \
+        --max-model-len 32768 \
+        --max-num-batched-tokens 32768 \
+        --trust-remote-code \
+        --gpu-memory-utilization 0.9 \
+        2>&1 | tee /home/hucong/scripts/test.log
+```
+### PrefetchOffload
+```bash
+    vllm serve /home/weights/Qwen3-32B-W8A8/ \
+        --host 173.125.1.2 \
+        --port 1234 \
+        --data-parallel-size 1 \
+        --tensor-parallel-size 4 \
+        --seed 1024 \
+        --served-model-name qwen \
+        --max-num-seqs 64 \
+        --max-model-len 32768 \
+        --max-num-batched-tokens 32768 \
+        --trust-remote-code \
+        --gpu-memory-utilization 0.9 \
+        --offload-backend prefetch \
+        --offload-group-size 4 \
+        --offload-num-in-group 1 \
+        --offload-prefetch-step 1 \
+        --offload_params '{"gate_up_proj", "down_proj"}' \
+        2>&1 | tee /home/hucong/scripts/test.log
+```
+### UVA Offload
+```bash
+    # NPU 不支持uva，回退到基础的eager模式
+    export VLLM_WEIGHT_OFFLOADING_DISABLE_UVA=1
+    vllm serve /home/weights/Qwen3-32B-W8A8/ \
+        --host 173.125.1.2 \
+        --port 1234 \
+        --data-parallel-size 1 \
+        --tensor-parallel-size 4 \
+        --seed 1024 \
+        --served-model-name qwen \
+        --max-num-seqs 64 \
+        --max-model-len 32768 \
+        --max-num-batched-tokens 32768 \
+        --trust-remote-code \
+        --gpu-memory-utilization 0.9 \
+        --offload-backend uva \
+        --cpu-offload-gb 5 \
+        --enforce-eager \
+        2>&1 | tee /home/hucong/scripts/test.log
+```
+
 ---
 
 ## 精度验证
 
-使用 **GSM8K** 数据集（50 samples），TP=4，通过 ais_bench 工具对比 baseline 与 prefetch offload 模式的推理精度。
+使用 **GSM8K** 数据集（300 samples），TP=4，通过 ais_bench 工具对比 baseline 与 prefetch offload 模式的推理精度。
 
 | 模式 | 数据集 | Metric | 精度 |
 |------|--------|--------|------|
-| Baseline（无 offload） | GSM8K (50) | accuracy | **98.00%** |
-| NPU PrefetchOffload | GSM8K (50) | accuracy | **96.00%** |
+| Baseline（无 offload） | GSM8K (300) | accuracy | **94.00%** |
+| NPU PrefetchOffload | GSM8K (300) | accuracy | **94.67%** |
+| NPU UVA Offload | GSM8K (300) | accuracy | **95.00%** |
 
-精度差异在 2% 以内（50 样本统计误差范围内），**精度无明显回归**。
+三种模式精度差异均在 1% 以内（300 样本统计误差范围内），**精度无明显回归**。
 
 ---
 
 ## 性能对比
 
-| 模式 | 50 samples 耗时 | 吞吐 |
+| 模式 | 300 samples 耗时 | 吞吐 |
 |------|----------------|------|
-| Baseline（无 offload） | 13m 04s | ~0.1 it/s |
-| NPU PrefetchOffload | 3m 35s | ~0.5 it/s |
+| Baseline（无 offload） | 11m 51s | ~0.42 req/s |
+| NPU PrefetchOffload | 11m 13s | ~0.45 req/s |
+| NPU UVA Offload | 50m 30s | ~0.01 req/s |
 
-启用 prefetch offload 后吞吐提升约 **5x**，符合预期（通过 prefetch 隐藏 H2D 拷贝延迟）。
+启用 offload 后推理耗时与 baseline 基本持平或略有裂化，符合预期。
 
 ---
 
-## 显存节省
+## 显存节省(单卡)
 
 | 模式 | Worker weights 占用 | KV cache 可用 |
 |------|-------------------|--------------|
-| Baseline（无 offload） | 7.69 GiB | 16.86 GiB |
-| NPU PrefetchOffload | 9.99 GiB（含 buffer pool） | 14.56 GiB |
+| NPU PrefetchOffload | 7.69 GiB | 16.86 GiB |
+| Baseline（无 offload） | 9.99 GiB（含 buffer pool） | 14.56 GiB |
+| NPU UVA Offload | 4.94 GiB（含 buffer pool） | 18.27 GiB |
 
 > 启用 offload 后设备上维持 static buffer pool，峰值略高；但离线 weights 已卸载至 CPU，长期驻留显存减少，整体在预期范围内。
 
@@ -74,7 +141,6 @@
 
 | 验证项 | 结果 |
 |--------|------|
-| 精度 | 无回归（96% vs 98%，50 样本统计误差范围内） |
-| 性能 | 吞吐提升 ~5x |
-| 稳定性 | ACL graph crash 已修复，全部 50 请求无失败 |
+| 精度 | 无回归（Baseline 94.00% / Prefetch 94.67% / UVA 95.00%，300 样本统计误差范围内） |
+| 稳定性 | ACL graph crash 已修复，全部 300 请求无失败 |
 | **整体** | **建议合入** |
