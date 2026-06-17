@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json as _json
+import signal
 import sys
 from pathlib import Path
 
@@ -128,7 +129,8 @@ def _baseline_to_args(baseline: list[str], host: str | None) -> tuple[str, list[
     model = baseline[0]
     args = []
     for item in baseline[1:]:
-        args.extend(item.split())
+        parts = item.split(None, 1)
+        args.extend(parts)
     if host:
         args += ["--host", host]
     return model, args
@@ -263,6 +265,7 @@ def test_param(
         served_model = _get_served_model(baseline)
         _rt = param_entry.get("request_type")
         if _rt == "tokens_only":
+            print(" -------------------Warning: tokens_only request type is deprecated and may be removed in future. Please switch to using a normal completion request and ignore the text output.")
             ok, err = _common.send_tokens_only_request(served_model, port, host=host or "127.0.0.1")
         elif _rt == "multimodal_image":
             ok, err = _common.send_multimodal_image_request(served_model, port, host=host or "127.0.0.1")
@@ -275,13 +278,16 @@ def test_param(
             try:
                 bench_log_dir = _common.LOG_DIR / "bench" / section_name
                 bench_log_dir.mkdir(parents=True, exist_ok=True)
+                bench_endpoint = "/v1/chat/completions" if _rt == "multimodal_image" else "/v1/completions"
+                bench_tokenizer = model if _rt == "tokens_only" else None
                 raw = run_bench(model, port, bench_num_prompts, bench_concurrency,
-                                _common.LOG_DIR, log_name=f"{section_name}/{pkey}")
+                                _common.LOG_DIR, log_name=f"{section_name}/{pkey}",
+                                endpoint=bench_endpoint, tokenizer=bench_tokenizer)
                 result["bench"] = extract_metrics(raw)
             except Exception as be:
                 result["bench_error"] = str(be)
 
-        if ok and accuracy and baseline_outputs is not None:
+        if ok and accuracy and baseline_outputs is not None and _rt not in ("tokens_only", "multimodal_image"):
             try:
                 a_ok, test_outputs, a_err = send_accuracy_request(served_model, port, host=host or "127.0.0.1")
                 acc_path = _common.LOG_DIR / "accuracy" / section_name / f"{pkey}.json"
@@ -358,7 +364,7 @@ def main() -> None:
 
     # --rerun-failed mode
     if args.rerun_failed:
-        summary_path = Path(args.rerun_failed)
+        summary_path = Path(args.rerun_failed).resolve()
         if not summary_path.exists():
             sys.exit(f"Error: summary file not found: {summary_path}")
         data = _json.loads(summary_path.read_text(encoding="utf-8"))
@@ -380,35 +386,53 @@ def main() -> None:
         results = []
         results_dir = _common.LOG_DIR / "results"
         results_dir.mkdir(parents=True, exist_ok=True)
-        summary_file = results_dir / "summary.json"
 
-        for r in failed:
-            sname = r["section"]
-            param_name = r["param"]
-            test_value = r.get("test_value")
-            if sname not in sections:
-                continue
-            sec = sections[sname]
-            tv_filter = str(test_value).lower() if test_value is not None else None
-            # strip subfield suffix for parent filter
-            parent_filter = param_name.split(".")[0] if "." in param_name else param_name
-            entries = list(_iter_params(sec["params"], parent_filter, tv_filter))
-            if not entries:
-                continue
-            baseline = sec["baseline"]
-            for entry in entries:
-                port = args.port or find_free_port()
-                result = test_param(sname, entry, baseline, args.host, port, args.timeout,
-                                    bench=args.bench, bench_num_prompts=args.bench_num_prompts,
-                                    bench_concurrency=args.bench_concurrency,
-                                    section_env=sec.get("env"))
-                results.append(result)
-                emit_progress("result", f"{_param_display(sname, entry)}: {result['status']}")
-                _upsert_summary(summary_file, result)
+        interrupted = False
+
+        def _sigint_handler(sig, frame):
+            nonlocal interrupted
+            if interrupted:
+                sys.exit(1)
+            interrupted = True
+            emit_progress("interrupt", "Ctrl+C received, finishing current param and saving results...")
+
+        prev_handler = signal.signal(signal.SIGINT, _sigint_handler)
+
+        try:
+            for r in failed:
+                if interrupted:
+                    break
+                sname = r["section"]
+                param_name = r["param"]
+                test_value = r.get("test_value")
+                if sname not in sections:
+                    continue
+                sec = sections[sname]
+                tv_filter = str(test_value).lower() if test_value is not None else None
+                # strip subfield suffix for parent filter
+                parent_filter = param_name.split(".")[0] if "." in param_name else param_name
+                entries = list(_iter_params(sec["params"], parent_filter, tv_filter))
+                if not entries:
+                    continue
+                baseline = sec["baseline"]
+                for entry in entries:
+                    if interrupted:
+                        break
+                    port = args.port or find_free_port()
+                    result = test_param(sname, entry, baseline, args.host, port, args.timeout,
+                                        bench=args.bench, bench_num_prompts=args.bench_num_prompts,
+                                        bench_concurrency=args.bench_concurrency,
+                                        section_env=sec.get("env"))
+                    results.append(result)
+                    emit_progress("result", f"{_param_display(sname, entry)}: {result['status']}")
+                    _upsert_summary(summary_path, result)
+        finally:
+            signal.signal(signal.SIGINT, prev_handler)
 
         passed = sum(1 for r in results if r["status"] == "PASS")
         failed_count = sum(1 for r in results if r["status"] == "FAIL")
-        print_json({"status": "ok", "tested": len(results), "passed": passed,
+        print_json({"status": "interrupted" if interrupted else "ok",
+                    "tested": len(results), "passed": passed,
                     "failed": failed_count, "results": results, "timestamp": now_utc()})
         return
 
@@ -438,34 +462,53 @@ def main() -> None:
     results_dir.mkdir(parents=True, exist_ok=True)
     summary_file = results_dir / "summary.json"
 
-    for sname, sec in sections_to_test.items():
-        baseline = sec["baseline"]
-        params = list(_iter_params(sec["params"], args.param, args.test_value))
-        emit_progress("section", f"testing {sname} ({len(params)} entries)")
+    interrupted = False
 
-        baseline_outputs = None
-        if args.accuracy:
-            baseline_outputs = _collect_baseline_outputs(sname, baseline, args.host, args.timeout)
-            if baseline_outputs is None:
-                emit_progress("accuracy", f"failed to collect baseline outputs for {sname}, skipping accuracy")
+    def _sigint_handler(sig, frame):
+        nonlocal interrupted
+        if interrupted:
+            sys.exit(1)
+        interrupted = True
+        emit_progress("interrupt", "Ctrl+C received, finishing current param and saving results...")
 
-        for entry in params:
-            port = args.port or find_free_port()
-            result = test_param(sname, entry, baseline, args.host, port, args.timeout,
-                                bench=args.bench, bench_num_prompts=args.bench_num_prompts,
-                                bench_concurrency=args.bench_concurrency,
-                                accuracy=args.accuracy, baseline_outputs=baseline_outputs,
-                                section_env=sec.get("env"))
-            results.append(result)
-            emit_progress("result", f"{_param_display(sname, entry)}: {result['status']}")
+    prev_handler = signal.signal(signal.SIGINT, _sigint_handler)
 
-            # Upsert this result into summary.json immediately
-            _upsert_summary(summary_file, result)
+    try:
+        for sname, sec in sections_to_test.items():
+            if interrupted:
+                break
+            baseline = sec["baseline"]
+            params = list(_iter_params(sec["params"], args.param, args.test_value))
+            emit_progress("section", f"testing {sname} ({len(params)} entries)")
+
+            baseline_outputs = None
+            if args.accuracy:
+                baseline_outputs = _collect_baseline_outputs(sname, baseline, args.host, args.timeout)
+                if baseline_outputs is None:
+                    emit_progress("accuracy", f"failed to collect baseline outputs for {sname}, skipping accuracy")
+
+            for entry in params:
+                if interrupted:
+                    break
+                port = args.port or find_free_port()
+                result = test_param(sname, entry, baseline, args.host, port, args.timeout,
+                                    bench=args.bench, bench_num_prompts=args.bench_num_prompts,
+                                    bench_concurrency=args.bench_concurrency,
+                                    accuracy=args.accuracy, baseline_outputs=baseline_outputs,
+                                    section_env=sec.get("env"))
+                results.append(result)
+                emit_progress("result", f"{_param_display(sname, entry)}: {result['status']}")
+
+                # Upsert this result into summary.json immediately
+                _upsert_summary(summary_file, result)
+    finally:
+        signal.signal(signal.SIGINT, prev_handler)
 
     passed = sum(1 for r in results if r["status"] == "PASS")
     failed = sum(1 for r in results if r["status"] == "FAIL")
     skipped = sum(1 for r in results if r["status"] == "SKIP")
-    summary = {"status": "ok", "tested": len(results), "passed": passed,
+    summary = {"status": "interrupted" if interrupted else "ok",
+               "tested": len(results), "passed": passed,
                "failed": failed, "skipped": skipped, "results": results,
                "timestamp": now_utc()}
 

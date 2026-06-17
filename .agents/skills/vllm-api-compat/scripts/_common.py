@@ -333,7 +333,7 @@ def send_tokens_only_request(model: str, port: int, host: str = "127.0.0.1") -> 
 
 
 # 1x1 red pixel PNG, base64-encoded
-_MM_IMAGE_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg=="
+_MM_IMAGE_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC"
 
 
 def send_multimodal_image_request(model: str, port: int, host: str = "127.0.0.1") -> tuple[bool, str]:
@@ -510,17 +510,20 @@ def _parse_bench_table(stdout: str) -> dict:
 
 
 def run_bench(model: str, port: int, num_prompts: int, concurrency: int, log_path: Path,
-              log_name: str = "bench_latest") -> dict:
+              log_name: str = "bench_latest", endpoint: str = "/v1/completions",
+              tokenizer: str | None = None) -> dict:
     """Run vllm bench serve and return the parsed result JSON."""
     cmd = [
         "vllm", "bench", "serve",
         "--backend", "openai",
-        "--endpoint", "/v1/completions",
+        "--endpoint", endpoint,
         "--host", "127.0.0.1",
         "--port", str(port),
         "--num-prompts", str(num_prompts),
         "--max-concurrency", str(concurrency),
     ]
+    if tokenizer:
+        cmd += ["--tokenizer", tokenizer]
     emit_progress("bench_run", f"running: {' '.join(cmd)}")
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
     if proc.returncode != 0:

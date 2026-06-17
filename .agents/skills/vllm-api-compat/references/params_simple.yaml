@@ -307,7 +307,7 @@ CacheConfig:
     test_value: true
 MultiModalConfig:
   baseline:
-  - /home/weights/Qwen3-30B-A3B-w8a8/
+  - /home/weights/Qwen3.5-4B
   - --data-parallel-size 2
   - --tensor-parallel-size 2
   - --seed 1024
@@ -333,7 +333,6 @@ MultiModalConfig:
     request_type: multimodal_image
   - name: --language-model-only
     test_value: true
-    request_type: multimodal_image
   - name: --no-language-model-only
     test_value: true
     request_type: multimodal_image
@@ -342,7 +341,6 @@ MultiModalConfig:
     request_type: multimodal_image
   - name: --no-mm-encoder-only
     test_value: true
-    request_type: multimodal_image
   - name: --skip-mm-profiling
     test_value: true
     request_type: multimodal_image
@@ -352,8 +350,8 @@ MultiModalConfig:
 LoRAConfig:
   baseline:
   - /home/weights/Qwen3.5-4B
-  - --data-parallel-size 2
-  - --tensor-parallel-size 2
+  - --data-parallel-size 1
+  - --tensor-parallel-size 1
   - --seed 1024
   - --served-model-name qwen
   - --max-num-seqs 28
@@ -363,12 +361,9 @@ LoRAConfig:
   - --gpu-memory-utilization 0.8
   - --no-disable-hybrid-kv-cache-manager
   - --enforce-eager
+  - --enable-lora
   - '--lora-modules {"name": "sql-lora", "path": "/root/.cache/modelscope/hub/models/vllm-ascend/qwen35-4b-text-only-sql-lora", "base_model_name": "/home/weights/Qwen3.5-4B"}'
   params:
-  - name: --enable-lora
-    test_value: true
-  - name: --no-enable-lora
-    test_value: true
   - name: --enable-mixed-moe-lora-format
     test_value: true
   - name: --no-enable-mixed-moe-lora-format
@@ -467,7 +462,7 @@ KernelConfig:
     test_value: true
   - name: --no-enable-flashinfer-autotune
     test_value: true
-VllmConfig:
+ATTEN:
   baseline:
   - /home/weights/Qwen3-0.6B
   - --data-parallel-size 2
@@ -507,92 +502,19 @@ VllmConfig:
       test_value: true
     - name: use_non_causal
       test_value: false
-  - name: --compilation-config
-    subfields:
-    - name: ir_enable_torch_wrap
-      test_value: true
-    - name: ir_enable_torch_wrap
-      test_value: false
-    - name: compile_mm_encoder
-      test_value: true
-    - name: compile_mm_encoder
-      test_value: false
-    - name: cudagraph_mm_encoder
-      test_value: true
-    - name: cudagraph_mm_encoder
-      test_value: false
-    - name: cudagraph_copy_inputs
-      test_value: true
-    - name: cudagraph_copy_inputs
-      test_value: false
-    - name: cudagraph_specialize_lora
-      test_value: true
-    - name: cudagraph_specialize_lora
-      test_value: false
-    - name: use_inductor_graph_partition
-      test_value: true
-    - name: use_inductor_graph_partition
-      test_value: false
-    - name: fast_moe_cold_start
-      test_value: true
-    - name: fast_moe_cold_start
-      test_value: false
-  - name: --kernel-config
-    subfields:
-    - name: enable_flashinfer_autotune
-      test_value: true
-    - name: enable_flashinfer_autotune
-      test_value: false
-  - name: --kv-events-config
-    subfields:
-    - name: enable_kv_cache_events
-      test_value: true
-    - name: enable_kv_cache_events
-      test_value: false
-  - name: --profiler-config
-    subfields:
-    - name: torch_profiler_with_stack
-      test_value: true
-    - name: torch_profiler_with_stack
-      test_value: false
-    - name: torch_profiler_with_flops
-      test_value: true
-    - name: torch_profiler_with_flops
-      test_value: false
-    - name: torch_profiler_use_gzip
-      test_value: true
-    - name: torch_profiler_use_gzip
-      test_value: false
-    - name: torch_profiler_dump_cuda_time_total
-      test_value: true
-    - name: torch_profiler_dump_cuda_time_total
-      test_value: false
-    - name: torch_profiler_record_shapes
-      test_value: true
-    - name: torch_profiler_record_shapes
-      test_value: false
-    - name: torch_profiler_with_memory
-      test_value: true
-    - name: torch_profiler_with_memory
-      test_value: false
-    - name: ignore_frontend
-      test_value: true
-    - name: ignore_frontend
-      test_value: false
-  - name: --speculative-config
-    subfields:
-    - name: disable_padded_drafter_batch
-      test_value: true
-    - name: disable_padded_drafter_batch
-      test_value: false
-    - name: use_local_argmax_reduction
-      test_value: true
-    - name: use_local_argmax_reduction
-      test_value: false
-    - name: parallel_drafting
-      test_value: true
-    - name: parallel_drafting
-      test_value: false
+STRUCTURED:
+  baseline:
+  - /home/weights/Qwen3-0.6B
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.8
+  params:
   - name: --structured-outputs-config
     subfields:
     - name: disable_any_whitespace
@@ -613,11 +535,125 @@ VllmConfig:
         backend: guidance
     - name: enable_in_reasoning
       test_value: true
+      deps:
+        backend: xgrammar
     - name: enable_in_reasoning
       test_value: false
-Exception:
+      deps:
+        backend: xgrammar
+PROFILER:
   baseline:
-  - /home/weights/Qwen3-0.6B/
+  - /home/weights/Qwen3-0.6B
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.8
+  params:
+  - name: --profiler-config
+    subfields:
+    - name: torch_profiler_with_stack
+      test_value: true
+    - name: torch_profiler_with_stack
+      test_value: false
+    - name: torch_profiler_with_flops
+      test_value: true
+    - name: torch_profiler_with_flops
+      test_value: false
+    - name: torch_profiler_use_gzip
+      test_value: true
+    - name: torch_profiler_use_gzip
+      test_value: false
+    - name: torch_profiler_dump_cuda_time_total
+      test_value: true
+    - name: torch_profiler_dump_cuda_time_total
+      test_value: false
+    - name: torch_profiler_record_shapes
+      test_value: true
+    - name: torch_profiler_record_shapes
+      test_value: false
+    - name: torch_profiler_with_memory
+      test_value: true
+    - name: torch_profiler_with_memory
+      test_value: false
+    - name: ignore_frontend
+      test_value: true
+    - name: ignore_frontend
+      test_value: false
+COMPILATION:
+  baseline:
+  - /home/weights/Qwen3.5-4B
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.8
+  params:
+  - name: --compilation-config
+    subfields:
+    - name: ir_enable_torch_wrap
+      test_value: true
+    - name: ir_enable_torch_wrap
+      test_value: false
+    - name: compile_mm_encoder
+      test_value: true
+    - name: compile_mm_encoder
+      test_value: false
+    - name: cudagraph_mm_encoder
+      test_value: true
+    - name: cudagraph_mm_encoder
+      test_value: false
+    - name: cudagraph_specialize_lora
+      test_value: true
+    - name: cudagraph_specialize_lora
+      test_value: false
+    - name: cudagraph_copy_inputs
+      test_value: true
+      deps:
+        cudagraph_mode: PIECEWISE
+    - name: cudagraph_copy_inputs
+      test_value: false
+    - name: use_inductor_graph_partition
+      test_value: true
+      deps:
+        mode: VLLM_COMPILE
+        cudagraph_mode: PIECEWISE
+    - name: use_inductor_graph_partition
+      test_value: false
+    - name: fast_moe_cold_start
+      test_value: true
+    - name: fast_moe_cold_start
+      test_value: false
+KVEVENTS:
+  baseline:
+  - /home/weights/Qwen3-0.6B
+  - --data-parallel-size 2
+  - --tensor-parallel-size 2
+  - --seed 1024
+  - --served-model-name qwen
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.8
+  params:
+  - name: --kv-events-config
+    subfields:
+    - name: enable_kv_cache_events
+      test_value: true
+    - name: enable_kv_cache_events
+      test_value: false
+MOE:
+  baseline:
+  - /home/model_weights/Qwen3-32B-W8A8/
   - --data-parallel-size 1
   - --tensor-parallel-size 4
   - --seed 1024
@@ -628,66 +664,14 @@ Exception:
   - --trust-remote-code
   - --gpu-memory-utilization 0.7
   params:
-  - name: --enable-return-routed-experts
-    test_value: true
-  - name: --no-enable-return-routed-experts
-    test_value: true
-  - name: --skip-tokenizer-init
-    test_value: true
-    request_type: tokens_only
-  - name: --no-allow-deprecated-quantization
-    test_value: true
-  - name: --tokens-only
-    test_value: true
-    request_type: tokens_only
-  - name: --enable-log-outputs
-    test_value: true
-    deps:
-      --enable-log-requests: true
-  - name: --enable-auto-tool-choice
-    test_value: true
-    deps:
-      --tool-call-parser: qwen3_coder
-  - name: --grpc
-    test_value: true
   - name: --enable-expert-parallel
     test_value: true
   - name: --no-enable-expert-parallel
     test_value: true
-  - name: --calculate-kv-scales
+  - name: --enable-return-routed-experts
     test_value: true
-  - name: --mm-encoder-only
+  - name: --no-enable-return-routed-experts
     test_value: true
-  - name: --compilation-config
-    subfields:
-    - name: cudagraph_mm_encoder
-      test_value: true
-    - name: cudagraph_mm_encoder
-      test_value: false
-    - name: cudagraph_copy_inputs
-      test_value: true
-    - name: cudagraph_copy_inputs
-      test_value: false
-    - name: use_inductor_graph_partition
-      test_value: true
-    - name: use_inductor_graph_partition
-      test_value: false
-    - name: dynamic_shapes_config.evaluate_guards
-      test_value: true
-    - name: dynamic_shapes_config.evaluate_guards
-      test_value: false
-  - name: --kv-transfer-config
-    subfields:
-    - name: enable_permute_local_kv
-      test_value: true
-    - name: enable_permute_local_kv
-      test_value: false
-  - name: --profiler-config
-    subfields:
-    - name: ignore_frontend
-      test_value: true
-    - name: ignore_frontend
-      test_value: false
 SPEC:
   baseline:
   - /home/model_weights/Qwen3-32B-W8A8/
@@ -723,18 +707,6 @@ SPEC:
         method: eagle3
         model: /home/model_weights/EAGLE3-Qwen3-32B/
     - name: use_local_argmax_reduction
-      test_value: false
-      deps:
-        num_speculative_tokens: 3
-        method: eagle3
-        model: /home/model_weights/EAGLE3-Qwen3-32B/
-    - name: parallel_drafting
-      test_value: true
-      deps:
-        num_speculative_tokens: 3
-        method: eagle3
-        model: /home/model_weights/EAGLE3-Qwen3-32B/
-    - name: parallel_drafting
       test_value: false
       deps:
         num_speculative_tokens: 3
@@ -781,3 +753,46 @@ DataParallelLB:
     deps:
       --data-parallel-rpc-port: 25678
       --data-parallel-size-local: 2
+ExceptionError:
+  baseline:
+  - /home/weights/Qwen3.5-4B
+  - --data-parallel-size 1
+  - --tensor-parallel-size 4
+  - --seed 1024
+  - --served-model-name qwen
+  - --max-num-seqs 28
+  - --max-model-len 16384
+  - --max-num-batched-tokens 16384
+  - --trust-remote-code
+  - --gpu-memory-utilization 0.7
+  params:
+  - name: --calculate-kv-scales
+    test_value: true
+  - name: --headless
+    test_value: true
+  - name: --grpc
+    test_value: true
+  - name: --ray-workers-use-nsight
+    test_value: true
+  - name: --mm-encoder-only
+    test_value: true
+    request_type: multimodal_image
+  - name: --enable-eplb
+    test_value: true
+  - name: --enable-elastic-ep
+    test_value: true
+  - name: --compilation-config
+    subfields:
+    - name: use_inductor_graph_partition
+      test_value: true
+      deps:
+        mode: VLLM_COMPILE
+        cudagraph_mode: PIECEWISE
+  - name: --speculative-config
+    subfields:
+    - name: parallel_drafting
+      test_value: true
+      deps:
+        num_speculative_tokens: 3
+        method: eagle3
+        model: /home/model_weights/EAGLE3-Qwen3-32B/
