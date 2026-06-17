@@ -1,0 +1,42 @@
+{
+  "section": "LoRAConfig",
+  "param": "--specialize-active-lora",
+  "test_value": true,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 25.98,
+    "mean_tpot_ms": 124.54,
+    "mean_ttft_ms": 656.56,
+    "median_tpot_ms": 124.22,
+    "median_ttft_ms": 641.79,
+    "request_throughput": 0.2,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  },
+  "accuracy": {
+    "total": 3,
+    "matched": 3,
+    "pass": true,
+    "details": [
+      {
+        "prompt_index": 0,
+        "match": true,
+        "baseline": " Paris.\nA. True\nB. False\nAnswer:\nA\n\nWhich of the following is NOT a reason for the decline of the Roman Empire?",
+        "test": " Paris.\nA. True\nB. False\nAnswer:\nA\n\nWhich of the following is NOT a reason for the decline of the Roman Empire?"
+      },
+      {
+        "prompt_index": 1,
+        "match": true,
+        "baseline": " 2\n1 + 1 = 2\n1 + 1 = 2\n1 + 1 = 2\n1 + 1 =",
+        "test": " 2\n1 + 1 = 2\n1 + 1 = 2\n1 + 1 = 2\n1 + 1 ="
+      },
+      {
+        "prompt_index": 2,
+        "match": true,
+        "baseline": " blue because of the scattering of sunlight by the atmosphere. This phenomenon is known as Rayleigh scattering. The intensity of scattered light is inversely proportional to the fourth",
+        "test": " blue because of the scattering of sunlight by the atmosphere. This phenomenon is known as Rayleigh scattering. The intensity of scattered light is inversely proportional to the fourth"
+      }
+    ]
+  }
+}

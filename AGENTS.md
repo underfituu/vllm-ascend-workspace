@@ -14,6 +14,9 @@ Repo-local skills live under `.agents/skills/`. Each has its own `SKILL.md` with
 | `vllm-ascend-serving` | Start / check / stop a vLLM Ascend service on a remote container |
 | `vllm-ascend-benchmark` | Run `vllm bench serve` benchmarks (single-run or multi-run with warmup) |
 | `ascend-memory-profiling` | Profile HBM memory usage on Ascend NPU for vLLM serving scenarios |
+| `ascend-profiling-collection` | Collect one Ascend torch-profiler case end-to-end (start service, bracket workload with `/start_profile` + `/stop_profile`, run `analyse()`, verify outputs, write manifest) |
+| `auto-commit-pr` | Commit, rebase, push, and open PRs for `vllm` / `vllm-ascend` with fixed identity (`underfituu`) |
+| `vllm-api-compat` | Monitor vLLM serve API parameter compatibility on Ascend, auto-detect new params from upstream PRs, test locally, and auto-fix regressions |
 
 None of these are gates for normal local coding, docs work, or unrelated Git tasks.
 

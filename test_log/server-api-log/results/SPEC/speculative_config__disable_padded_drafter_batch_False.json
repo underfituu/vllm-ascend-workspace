@@ -1,0 +1,42 @@
+{
+  "section": "SPEC",
+  "param": "--speculative-config.disable_padded_drafter_batch",
+  "test_value": false,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 19.67,
+    "mean_tpot_ms": 165.92,
+    "mean_ttft_ms": 631.04,
+    "median_tpot_ms": 163.69,
+    "median_ttft_ms": 618.05,
+    "request_throughput": 0.15,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  },
+  "accuracy": {
+    "total": 3,
+    "matched": 0,
+    "pass": false,
+    "details": [
+      {
+        "prompt_index": 0,
+        "match": false,
+        "baseline": " Paris. What is the capital of Germany? The capital of Germany is Berlin. Berlin is the largest city in Germany and serves as the political, cultural, and",
+        "test": " Paris.  France is in Europe.  What is the capital of Europe?  The question is flawed because Europe is a continent, not a country, and"
+      },
+      {
+        "prompt_index": 1,
+        "match": false,
+        "baseline": " 2, 2 + 2 = 24, 3 + 3 = 93, 4 + 4 = ?\nAnswer Choices",
+        "test": " 2, 2 + 2 = 4, 3 + 3 = 6, 4 + 4 = 8, 5"
+      },
+      {
+        "prompt_index": 2,
+        "match": false,
+        "baseline": " a phenomenon that has captivated human curiosity for centuries. It is not merely a backdrop to our daily lives but a dynamic canvas painted by the interplay of light",
+        "test": " a phenomenon that has captivated human curiosity for centuries. On a clear day, the sky appears a brilliant shade of blue, a hue that seems almost intrinsic to"
+      }
+    ]
+  }
+}

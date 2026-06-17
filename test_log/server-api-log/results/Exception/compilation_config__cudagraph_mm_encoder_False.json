@@ -1,0 +1,17 @@
+{
+  "section": "Exception",
+  "param": "--compilation-config.cudagraph_mm_encoder",
+  "test_value": false,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 270.22,
+    "mean_tpot_ms": 11.26,
+    "mean_ttft_ms": 158.12,
+    "median_tpot_ms": 11.14,
+    "median_ttft_ms": 141.05,
+    "request_throughput": 2.11,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  }
+}

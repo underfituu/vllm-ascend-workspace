@@ -1,0 +1,39 @@
+{
+  "status": "ok",
+  "comparison": {
+    "total": 3,
+    "matched": 3,
+    "pass": true,
+    "details": [
+      {
+        "prompt_index": 0,
+        "match": true,
+        "baseline": " Paris. The capital of the United Kingdom is London. The capital of the United States is Washington, D.C. The capital of Brazil is Brasília. The",
+        "test": " Paris. The capital of the United Kingdom is London. The capital of the United States is Washington, D.C. The capital of Brazil is Brasília. The"
+      },
+      {
+        "prompt_index": 1,
+        "match": true,
+        "baseline": " 2, 2 + 2 = 4, 3 + 3 = 6, 4 + 4 = 8, 5",
+        "test": " 2, 2 + 2 = 4, 3 + 3 = 6, 4 + 4 = 8, 5"
+      },
+      {
+        "prompt_index": 2,
+        "match": true,
+        "baseline": " a phenomenon that has fascinated humans for centuries, from ancient philosophers pondering the nature of light to modern scientists unraveling the complexities of atmospheric optics. At first glance",
+        "test": " a phenomenon that has fascinated humans for centuries, from ancient philosophers pondering the nature of light to modern scientists unraveling the complexities of atmospheric optics. At first glance"
+      }
+    ]
+  },
+  "prompts": [
+    "The capital of France is",
+    "1 + 1 =",
+    "The color of the sky is"
+  ],
+  "test_outputs": [
+    " Paris. The capital of the United Kingdom is London. The capital of the United States is Washington, D.C. The capital of Brazil is Brasília. The",
+    " 2, 2 + 2 = 4, 3 + 3 = 6, 4 + 4 = 8, 5",
+    " a phenomenon that has fascinated humans for centuries, from ancient philosophers pondering the nature of light to modern scientists unraveling the complexities of atmospheric optics. At first glance"
+  ],
+  "timestamp": "2026-06-17T02:18:58Z"
+}

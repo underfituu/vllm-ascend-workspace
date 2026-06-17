@@ -1,0 +1,42 @@
+{
+  "section": "MultiModalConfig",
+  "param": "--no-mm-encoder-only",
+  "test_value": true,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 150.53,
+    "mean_tpot_ms": 19.39,
+    "mean_ttft_ms": 424.77,
+    "median_tpot_ms": 18.86,
+    "median_ttft_ms": 311.23,
+    "request_throughput": 1.18,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  },
+  "accuracy": {
+    "total": 3,
+    "matched": 3,
+    "pass": true,
+    "details": [
+      {
+        "prompt_index": 0,
+        "match": true,
+        "baseline": " Paris.\nA. True\nB. False\nAnswer:\nA\n\nWhich of the following is NOT a reason for the decline of the Roman Empire?",
+        "test": " Paris.\nA. True\nB. False\nAnswer:\nA\n\nWhich of the following is NOT a reason for the decline of the Roman Empire?"
+      },
+      {
+        "prompt_index": 1,
+        "match": true,
+        "baseline": " 2\n1 + 1 = 2\n1 + 1 = 2\n1 + 1 = 2\n1 + 1 =",
+        "test": " 2\n1 + 1 = 2\n1 + 1 = 2\n1 + 1 = 2\n1 + 1 ="
+      },
+      {
+        "prompt_index": 2,
+        "match": true,
+        "baseline": " blue because of the scattering of sunlight by the atmosphere. This phenomenon is known as Rayleigh scattering.\n\nA. True\nB. False\n\n<think>\nThe",
+        "test": " blue because of the scattering of sunlight by the atmosphere. This phenomenon is known as Rayleigh scattering.\n\nA. True\nB. False\n\n<think>\nThe"
+      }
+    ]
+  }
+}

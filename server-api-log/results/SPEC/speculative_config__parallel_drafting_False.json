@@ -1,0 +1,42 @@
+{
+  "section": "SPEC",
+  "param": "--speculative-config.parallel_drafting",
+  "test_value": false,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 18.65,
+    "mean_tpot_ms": 177.56,
+    "mean_ttft_ms": 674.54,
+    "median_tpot_ms": 166.09,
+    "median_ttft_ms": 613.8,
+    "request_throughput": 0.15,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  },
+  "accuracy": {
+    "total": 3,
+    "matched": 0,
+    "pass": false,
+    "details": [
+      {
+        "prompt_index": 0,
+        "match": false,
+        "baseline": " Paris. What is the capital of Germany? The capital of Germany is Berlin. Berlin is the largest city in Germany and serves as the political, cultural, and",
+        "test": " Paris.  Is this correct? Yes, the capital of France is Paris.  This is a correct statement.  Paris is the capital and largest city of"
+      },
+      {
+        "prompt_index": 1,
+        "match": false,
+        "baseline": " 2, 2 + 2 = 24, 3 + 3 = 93, 4 + 4 = ?\nAnswer Choices",
+        "test": " 2, 2 + 2 = 6, 3 + 3 = 12, 4 + 4 = 20,"
+      },
+      {
+        "prompt_index": 2,
+        "match": false,
+        "baseline": " a phenomenon that has captivated human curiosity for centuries. It is not merely a backdrop to our daily lives but a dynamic canvas painted by the interplay of light",
+        "test": " a phenomenon that has captivated human curiosity for centuries. On a clear day, the sky appears a brilliant blue, a hue that seems almost intrinsic to our daily"
+      }
+    ]
+  }
+}

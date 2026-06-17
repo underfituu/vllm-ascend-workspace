@@ -1,0 +1,17 @@
+{
+  "section": "Exception",
+  "param": "--profiler-config.ignore_frontend",
+  "test_value": false,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 230.7,
+    "mean_tpot_ms": 11.59,
+    "mean_ttft_ms": 385.4,
+    "median_tpot_ms": 11.56,
+    "median_ttft_ms": 367.19,
+    "request_throughput": 1.8,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  }
+}

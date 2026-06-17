@@ -1,0 +1,42 @@
+{
+  "section": "COMPILATION",
+  "param": "--compilation-config.cudagraph_specialize_lora",
+  "test_value": false,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 149.19,
+    "mean_tpot_ms": 19.49,
+    "mean_ttft_ms": 429.59,
+    "median_tpot_ms": 18.72,
+    "median_ttft_ms": 312.53,
+    "request_throughput": 1.17,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  },
+  "accuracy": {
+    "total": 3,
+    "matched": 0,
+    "pass": false,
+    "details": [
+      {
+        "prompt_index": 0,
+        "match": false,
+        "baseline": " Paris. The capital of Italy is Rome. The capital of Spain is Madrid. The capital of China is Beijing. The capital of Japan is Tokyo. The capital",
+        "test": " Paris.\nA. True\nB. False\nAnswer:\nA\n\nWhich of the following is NOT a reason for the decline of the Roman Empire?"
+      },
+      {
+        "prompt_index": 1,
+        "match": false,
+        "baseline": " 2, 2 + 1 = 3, 3 + 1 = 4, 4 + 1 = 5, 5",
+        "test": " 2\n1 + 1 = 2\n1 + 1 = 2\n1 + 1 = 2\n1 + 1 ="
+      },
+      {
+        "prompt_index": 2,
+        "match": false,
+        "baseline": " determined by the color of the air. This is a statement that is true. The color of the sky is determined by the color of the air. This is",
+        "test": " blue because of the scattering of sunlight by the atmosphere. This phenomenon is known as Rayleigh scattering.\n\nA. True\nB. False\n\n<think>\nThe"
+      }
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "section": "DataParallelLB",
+  "param": "--data-parallel-hybrid-lb",
+  "test_value": true,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 128.95,
+    "mean_tpot_ms": 22.75,
+    "mean_ttft_ms": 454.87,
+    "median_tpot_ms": 22.75,
+    "median_ttft_ms": 471.5,
+    "request_throughput": 1.01,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  },
+  "accuracy": {
+    "total": 3,
+    "matched": 3,
+    "pass": true,
+    "details": [
+      {
+        "prompt_index": 0,
+        "match": true,
+        "baseline": " Paris. The capital of the United Kingdom is London. The capital of the United States is Washington, D.C. The capital of Brazil is Brasília. The",
+        "test": " Paris. The capital of the United Kingdom is London. The capital of the United States is Washington, D.C. The capital of Brazil is Brasília. The"
+      },
+      {
+        "prompt_index": 1,
+        "match": true,
+        "baseline": " 2, 2 + 2 = 4, 3 + 3 = 6, 4 + 4 = 8, 5",
+        "test": " 2, 2 + 2 = 4, 3 + 3 = 6, 4 + 4 = 8, 5"
+      },
+      {
+        "prompt_index": 2,
+        "match": true,
+        "baseline": " a phenomenon that has fascinated humans for centuries, from ancient philosophers pondering the nature of light to modern scientists unraveling the complexities of atmospheric optics. At first glance",
+        "test": " a phenomenon that has fascinated humans for centuries, from ancient philosophers pondering the nature of light to modern scientists unraveling the complexities of atmospheric optics. At first glance"
+      }
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "section": "Exception",
+  "param": "--no-enable-expert-parallel",
+  "test_value": true,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 275.69,
+    "mean_tpot_ms": 11.12,
+    "mean_ttft_ms": 137.33,
+    "median_tpot_ms": 11.13,
+    "median_ttft_ms": 138.79,
+    "request_throughput": 2.15,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  }
+}

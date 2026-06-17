@@ -1,0 +1,17 @@
+{
+  "section": "Exception",
+  "param": "--no-enable-return-routed-experts",
+  "test_value": true,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 263.41,
+    "mean_tpot_ms": 11.63,
+    "mean_ttft_ms": 144.46,
+    "median_tpot_ms": 11.55,
+    "median_ttft_ms": 145.63,
+    "request_throughput": 2.06,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  }
+}

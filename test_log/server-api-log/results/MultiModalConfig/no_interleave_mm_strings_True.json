@@ -1,0 +1,17 @@
+{
+  "section": "MultiModalConfig",
+  "param": "--no-interleave-mm-strings",
+  "test_value": true,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 0.0,
+    "mean_tpot_ms": 0.0,
+    "mean_ttft_ms": 0.0,
+    "median_tpot_ms": 0.0,
+    "median_ttft_ms": 0.0,
+    "request_throughput": 0.0,
+    "total_input": 0.0,
+    "total_output": 0.0
+  }
+}

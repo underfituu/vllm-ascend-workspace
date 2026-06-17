@@ -1,0 +1,17 @@
+{
+  "section": "Exception",
+  "param": "--compilation-config.cudagraph_copy_inputs",
+  "test_value": true,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 264.48,
+    "mean_tpot_ms": 11.5,
+    "mean_ttft_ms": 160.17,
+    "median_tpot_ms": 11.49,
+    "median_ttft_ms": 145.8,
+    "request_throughput": 2.07,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  }
+}

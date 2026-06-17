@@ -1,0 +1,17 @@
+{
+  "section": "VllmConfig",
+  "param": "--structured-outputs-config.disable_additional_properties",
+  "test_value": true,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 287.81,
+    "mean_tpot_ms": 10.93,
+    "mean_ttft_ms": 130.15,
+    "median_tpot_ms": 10.86,
+    "median_ttft_ms": 100.82,
+    "request_throughput": 2.25,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  }
+}

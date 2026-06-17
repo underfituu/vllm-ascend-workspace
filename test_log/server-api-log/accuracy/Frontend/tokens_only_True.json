@@ -1,0 +1,5 @@
+{
+  "status": "failed",
+  "error": "request failed for prompt 'The capital of France is': HTTP Error 400: Bad Request",
+  "timestamp": "2026-06-11T17:49:29Z"
+}

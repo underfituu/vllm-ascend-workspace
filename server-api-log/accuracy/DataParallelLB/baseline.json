@@ -1,0 +1,14 @@
+{
+  "status": "ok",
+  "prompts": [
+    "The capital of France is",
+    "1 + 1 =",
+    "The color of the sky is"
+  ],
+  "outputs": [
+    " Paris. The capital of the United Kingdom is London. The capital of the United States is Washington, D.C. The capital of Brazil is Brasília. The",
+    " 2, 2 + 2 = 4, 3 + 3 = 6, 4 + 4 = 8, 5",
+    " a phenomenon that has fascinated humans for centuries, from ancient philosophers pondering the nature of light to modern scientists unraveling the complexities of atmospheric optics. At first glance"
+  ],
+  "timestamp": "2026-06-12T07:24:51Z"
+}

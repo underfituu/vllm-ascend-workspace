@@ -1,0 +1,17 @@
+{
+  "section": "VllmConfig",
+  "param": "--structured-outputs-config.enable_in_reasoning",
+  "test_value": true,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 288.7,
+    "mean_tpot_ms": 10.84,
+    "mean_ttft_ms": 131.67,
+    "median_tpot_ms": 10.81,
+    "median_ttft_ms": 104.21,
+    "request_throughput": 2.26,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  }
+}

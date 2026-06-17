@@ -1,0 +1,17 @@
+{
+  "section": "VllmConfig",
+  "param": "--compilation-config.cudagraph_copy_inputs",
+  "test_value": true,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 289.58,
+    "mean_tpot_ms": 10.73,
+    "mean_ttft_ms": 136.18,
+    "median_tpot_ms": 10.77,
+    "median_ttft_ms": 116.45,
+    "request_throughput": 2.26,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "status": "ok",
+  "prompts": [
+    "The capital of France is",
+    "1 + 1 =",
+    "The color of the sky is"
+  ],
+  "outputs": [
+    " Paris. What is the capital of Germany? The capital of Germany is Berlin. Berlin is the largest city in Germany and serves as the political, cultural, and",
+    " 2, 2 + 2 = 24, 3 + 3 = 93, 4 + 4 = ?\nAnswer Choices",
+    " a phenomenon that has captivated human curiosity for centuries. It is not merely a backdrop to our daily lives but a dynamic canvas painted by the interplay of light"
+  ],
+  "timestamp": "2026-06-12T06:46:13Z"
+}

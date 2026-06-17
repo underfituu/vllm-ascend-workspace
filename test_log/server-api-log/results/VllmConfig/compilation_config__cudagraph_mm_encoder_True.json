@@ -1,0 +1,7 @@
+{
+  "section": "VllmConfig",
+  "param": "--compilation-config.cudagraph_mm_encoder",
+  "test_value": true,
+  "status": "PASS",
+  "notes": ""
+}

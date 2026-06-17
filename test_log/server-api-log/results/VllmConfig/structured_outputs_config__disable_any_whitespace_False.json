@@ -1,0 +1,17 @@
+{
+  "section": "VllmConfig",
+  "param": "--structured-outputs-config.disable_any_whitespace",
+  "test_value": false,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 288.54,
+    "mean_tpot_ms": 10.94,
+    "mean_ttft_ms": 121.43,
+    "median_tpot_ms": 10.88,
+    "median_ttft_ms": 99.68,
+    "request_throughput": 2.25,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  }
+}

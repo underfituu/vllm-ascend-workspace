@@ -1,0 +1,17 @@
+{
+  "section": "Exception",
+  "param": "--mm-encoder-only",
+  "test_value": true,
+  "status": "PASS",
+  "notes": "",
+  "bench": {
+    "output_throughput": 267.11,
+    "mean_tpot_ms": 11.49,
+    "mean_ttft_ms": 139.07,
+    "median_tpot_ms": 11.56,
+    "median_ttft_ms": 135.56,
+    "request_throughput": 2.09,
+    "total_input": 10240.0,
+    "total_output": 1280.0
+  }
+}
